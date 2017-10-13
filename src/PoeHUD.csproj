@@ -203,6 +203,7 @@
     <Compile Include="Hud\Menu\MenuSettings.cs" />
     <Compile Include="Hud\Menu\RootButton.cs" />
     <Compile Include="Hud\Menu\SimpleMenu.cs" />
+    <Compile Include="Hud\Performance\PerformanceSettings.cs" />
     <Compile Include="Hud\PluginExtension\ExternalPlugin.cs" />
     <Compile Include="Hud\PluginExtension\FileOperationAPIWrapper.cs" />
     <Compile Include="Hud\PluginExtension\PluginExtensionPlugin.cs" />

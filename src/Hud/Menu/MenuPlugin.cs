@@ -24,7 +24,7 @@ namespace PoeHUD.Hud.Menu
         // Use this event if you want your mouse clicks to be handled by poehud and does not passed to the game {Stridemann}
         public static Func<MouseEventID, Vector2, bool> ExternalMouseClick = delegate { return false; };
         // Use this event if you want your mouse clicks to be handled by poehud and passed to the game {Stridemann}
-        public static Action<MouseEventID, Vector2> eMouseEvent = delegate {  };
+        public static Action<MouseEventID, Vector2> eMouseEvent = delegate { };
 
 
         public MenuPlugin(GameController gameController, Graphics graphics, SettingsHub settingsHub)
@@ -217,7 +217,7 @@ namespace PoeHUD.Hud.Menu
 
             // Item Alert
             MenuItem itemAlertMenu = AddChild(MenuRootButton, "Item alert", settingsHub.ItemAlertSettings.Enable);
-            var itemAlertStaticMenuList = new[] { "Alternative", "Item tooltips", "Play sound", "Show text", "Hide others", "Show border" };
+            var itemAlertStaticMenuList = new[] { "Alternative", "Item tooltips", "Play sound", "Show text", "Hide others", "Show border", "Dim" };
             MenuItem alternative = AddChild(itemAlertMenu, itemAlertStaticMenuList[0],
                 settingsHub.ItemAlertSettings.Alternative, null, y => itemAlertStaticMenuList.All(x => x != (y as ToggleButton)?.Name));
             AddChild(alternative, settingsHub.ItemAlertSettings.FilePath);
@@ -462,6 +462,10 @@ namespace PoeHUD.Hud.Menu
             AddChild(menuSettings, "Title font size", settingsHub.MenuSettings.TitleFontSize);
             AddChild(menuSettings, "Picker font size", settingsHub.MenuSettings.PickerFontSize);
 
+            //Performance Settings
+            var performanceSettings = AddChild(MenuRootButton, "Performance");
+            AddChild(performanceSettings, "Update Data limit", settingsHub.PerformanceSettings.UpdateDataLimit);
+            AddChild(performanceSettings, "Render limit", settingsHub.PerformanceSettings.RenderLimit);
             eInitMenu(MenuRootButton);//Spawning the menu in external plugins
         }
 
