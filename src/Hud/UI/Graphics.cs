@@ -4,6 +4,7 @@ using SharpDX;
 using SharpDX.Direct3D9;
 using SharpDX.Windows;
 using System;
+using System.Diagnostics;
 using System.Threading;
 using System.Windows.Forms;
 using PoeHUD.Hud.Performance;
@@ -63,13 +64,14 @@ namespace PoeHUD.Hud.UI
 
         public void RenderLoop()
         {
+            var sw = Stopwatch.StartNew();
             var fpsLoop = 0;
             var fpsRender = 0;
             var fpsData = 0;
-            var nextRenderTick = Environment.TickCount;
-            var nextDataTick = Environment.TickCount;
-            var tickEverySecond = Environment.TickCount;
-            var tickEveryHalfSecond = Environment.TickCount;
+            var nextRenderTick = sw.ElapsedMilliseconds;
+            var nextDataTick = sw.ElapsedMilliseconds;
+            var tickEverySecond = sw.ElapsedMilliseconds;
+            var tickEveryHalfSecond = sw.ElapsedMilliseconds;
             var dataForRender = false;
             var skipTicksData = 0;
             var skipTicksRender = 0;
@@ -80,14 +82,14 @@ namespace PoeHUD.Hud.UI
             }
             while (running)
             {
-                if (Environment.TickCount > nextDataTick)
+                if (sw.ElapsedMilliseconds > nextDataTick)
                 {
                     DataUpdate.SafeInvoke();
                     nextDataTick += skipTicksData;
                     fpsData++;
                     dataForRender = true;
                 }
-                if (Environment.TickCount > nextRenderTick)
+                if (sw.ElapsedMilliseconds > nextRenderTick)
                 {
                     if (dataForRender)
                     {
@@ -96,37 +98,34 @@ namespace PoeHUD.Hud.UI
                         fpsRender++;
                     }
                 }
-                if (Environment.TickCount > tickEveryHalfSecond)
+                if (sw.ElapsedMilliseconds > tickEveryHalfSecond)
                 {
                     if (Performance != null)
                     {
                         skipTicksData = Performance.DataSkip;
                         skipTicksRender = Performance.RenderSkip;
                     }
+                    if (fpsLoop*2 > FpsRender * 5)
+                        Sleep++;
+                    else if ((fpsLoop*2 <= Performance?.RenderLimit ||
+                              fpsLoop*2 <= Performance?.UpdateDataLimit) && Sleep > 0)
+                        Sleep--;
                     tickEveryHalfSecond += 500;
                 }
-                if (Environment.TickCount > tickEverySecond)
+                if (sw.ElapsedMilliseconds > tickEverySecond)
                 {
-                    if (nextRenderTick - Environment.TickCount < -500)
-                        nextRenderTick = Environment.TickCount;
-                    if (nextDataTick - Environment.TickCount < -500)
-                        nextDataTick = Environment.TickCount;
+                    if (nextRenderTick - sw.ElapsedMilliseconds < -500)
+                        nextRenderTick = sw.ElapsedMilliseconds;
+                    if (nextDataTick - sw.ElapsedMilliseconds < -500)
+                        nextDataTick = sw.ElapsedMilliseconds;
                     FpsLoop = fpsLoop;
                     FpsData = fpsData;
                     FpsRender = fpsRender;
                     fpsLoop = 0;
                     fpsRender = 0;
                     fpsData = 0;
-
-                    if (FpsLoop > FpsRender * 5)
-                        Sleep++;
-                    else if ((FpsLoop <= Performance?.RenderLimit ||
-                              FpsLoop <= Performance?.UpdateDataLimit) && Sleep > 0)
-                        Sleep--;
-
                     tickEverySecond += 1000;
                 }
-
                 fpsLoop++;
                 Thread.Sleep(Sleep);
             }
