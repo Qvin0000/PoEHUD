@@ -11,7 +11,9 @@ using PoeHUD.Hud.Settings.Converters;
 using PoeHUD.Hud.Trackers;
 using PoeHUD.Hud.XpRate;
 using System;
+using System.Collections.Generic;
 using System.IO;
+using PoeHUD.Hud.Dev;
 using PoeHUD.Hud.Performance;
 
 namespace PoeHUD.Hud.Settings
@@ -21,7 +23,7 @@ namespace PoeHUD.Hud.Settings
         private const string SETTINGS_FILE_NAME = "config/settings.json";
 
         public static readonly JsonSerializerSettings jsonSettings;
-
+        public static readonly List<SettingsBase> SettingsBases = new List<SettingsBase>();
         static SettingsHub()
         {
             jsonSettings = new JsonSerializerSettings
@@ -50,6 +52,21 @@ namespace PoeHUD.Hud.Settings
             HealthBarSettings = new HealthBarSettings();
             KillCounterSettings = new KillCounterSettings();
             PerformanceSettings = new PerformanceSettings();
+            DebugTreeSettings = new DebugTreeSettings();
+            DebugInformationSettings = new DebugInformationSettings();
+            DebugPluginLogSettings = new DebugPluginLogSettings();
+            SettingsBases.Add(AdvancedTooltipSettings);
+            SettingsBases.Add(DpsMeterSettings);
+            SettingsBases.Add(HealthBarSettings);
+            SettingsBases.Add(ItemAlertSettings);
+            SettingsBases.Add(KillCounterSettings);
+            SettingsBases.Add(MapIconsSettings);
+            SettingsBases.Add(MenuSettings);
+            SettingsBases.Add(MonsterTrackerSettings);
+            SettingsBases.Add(PerformanceSettings);
+            SettingsBases.Add(PoiTrackerSettings);
+            SettingsBases.Add(PreloadAlertSettings);
+            SettingsBases.Add(XpRateSettings);
         }
 
         [JsonProperty("Menu")]
@@ -86,7 +103,12 @@ namespace PoeHUD.Hud.Settings
         public KillCounterSettings KillCounterSettings { get; private set; }
         [JsonProperty("Performance")]
         public PerformanceSettings PerformanceSettings { get; private set; }
-
+        [JsonIgnore]
+        public DebugTreeSettings DebugTreeSettings { get; private set; }
+        [JsonIgnore]
+        public DebugInformationSettings DebugInformationSettings { get; private set; }
+        [JsonIgnore]
+        public DebugPluginLogSettings DebugPluginLogSettings { get; private set; }
         public static SettingsHub Load()
         {
             try

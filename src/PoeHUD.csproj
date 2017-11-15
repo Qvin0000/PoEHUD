@@ -121,6 +121,10 @@
       <HintPath>packages\Antlr4.Runtime.4.6.4\lib\net45\Antlr4.Runtime.dll</HintPath>
       <Private>True</Private>
     </Reference>
+    <Reference Include="ImGui.NET, Version=0.3.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\Release\ImGui.NET.dll</HintPath>
+    </Reference>
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="Newtonsoft.Json, Version=10.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <HintPath>packages\Newtonsoft.Json.10.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
@@ -142,8 +146,19 @@
       <HintPath>packages\SharpDX.Mathematics.4.0.1\lib\net45\SharpDX.Mathematics.dll</HintPath>
       <Private>True</Private>
     </Reference>
+    <Reference Include="System.Buffers, Version=4.0.1.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\Release\System.Buffers.dll</HintPath>
+    </Reference>
     <Reference Include="System.ComponentModel.Composition" />
     <Reference Include="System.Numerics" />
+    <Reference Include="System.Numerics.Vectors, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\Release\System.Numerics.Vectors.dll</HintPath>
+    </Reference>
+    <Reference Include="System.ValueTuple, Version=4.0.1.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>packages\System.ValueTuple.4.3.0\lib\netstandard1.0\System.ValueTuple.dll</HintPath>
+    </Reference>
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -157,7 +172,9 @@
     <Compile Include="Controllers\FsController.cs" />
     <Compile Include="Framework\Aero.cs" />
     <Compile Include="Framework\ChooseColor.cs" />
+    <Compile Include="Framework\Coroutine.cs" />
     <Compile Include="Framework\Helpers\ActionHelper.cs" />
+    <Compile Include="Framework\Helpers\CoroutineExtension.cs" />
     <Compile Include="Framework\Helpers\LinqHelper.cs" />
     <Compile Include="Framework\Helpers\MathHepler.cs" />
     <Compile Include="Framework\Helpers\ConvertHelper.cs" />
@@ -169,12 +186,19 @@
     <Compile Include="Framework\InputHooks\MouseHook.cs" />
     <Compile Include="Framework\InputHooks\Structures\MouseLLHookStruct.cs" />
     <Compile Include="Framework\MemoryControl.cs" />
+    <Compile Include="Framework\Runner.cs" />
     <Compile Include="Framework\WinApi.cs" />
     <Compile Include="Hud\AdvancedTooltip\AdvancedTooltipPlugin.cs" />
     <Compile Include="Hud\AdvancedTooltip\AdvancedTooltipSettings.cs" />
     <Compile Include="Hud\CustomColorDialog.cs" />
     <Compile Include="Hud\DebugPlugin\DebugPlugin.cs" />
     <Compile Include="Hud\DebugPlugin\DebugPluginSettings.cs" />
+    <Compile Include="Hud\Dev\DebugInformation.cs" />
+    <Compile Include="Hud\Dev\DebugInformationSettings.cs" />
+    <Compile Include="Hud\Dev\DebugPluginLog.cs" />
+    <Compile Include="Hud\Dev\DebugPluginLogSettings.cs" />
+    <Compile Include="Hud\Dev\DebugTree.cs" />
+    <Compile Include="Hud\Dev\DebugTreeSettings.cs" />
     <Compile Include="Hud\Dps\DpsMeterSettings.cs" />
     <Compile Include="Hud\AdvancedTooltip\WeaponDpsSettings.cs" />
     <Compile Include="Hud\ExternalOverlay.cs">
@@ -218,6 +242,7 @@
     <Compile Include="Hud\Settings\ListNode.cs" />
     <Compile Include="Hud\SizedPlugin.cs" />
     <Compile Include="Hud\SizedPluginWithMapIcons.cs" />
+    <Compile Include="Hud\UI\Vertexes\CustomVertex.cs" />
     <Compile Include="Models\BaseItemType.cs" />
     <Compile Include="Models\ConfigLineBase.cs" />
     <Compile Include="Models\Enums\DiagnosticInfoType.cs" />
@@ -262,9 +287,11 @@
     <Compile Include="Poe\Components\DiesAfterTime.cs" />
     <Compile Include="Poe\Components\Flask.cs" />
     <Compile Include="Poe\Components\Inventories.cs" />
+    <Compile Include="Poe\Components\Pathfinding.cs" />
     <Compile Include="Poe\Components\RenderItem.cs" />
     <Compile Include="Poe\Components\Shrine.cs" />
     <Compile Include="Poe\Components\Stack.cs" />
+    <Compile Include="Poe\Components\Stats.cs" />
     <Compile Include="Poe\Components\TriggerableBlockage.cs" />
     <Compile Include="Poe\Elements\InventoryElements\DivinationInventoryItem.cs" />
     <Compile Include="Poe\Elements\InventoryElements\EssenceInventoryItem.cs" />
@@ -273,10 +300,12 @@
     <Compile Include="Poe\Elements\InventoryElements\NormalInventoryItem.cs" />
     <Compile Include="Poe\Elements\ItemOnGroundTooltip.cs" />
     <Compile Include="Poe\Elements\ItemsOnGroundLabelElement.cs" />
+    <Compile Include="Poe\Elements\NpcDialog.cs" />
     <Compile Include="Poe\Elements\PoeChatElement.cs" />
     <Compile Include="Poe\Elements\SkillBarElement.cs" />
     <Compile Include="Poe\Elements\SkillElement.cs" />
     <Compile Include="Poe\Elements\StashElement.cs" />
+    <Compile Include="Poe\Elements\VendorSellElement.cs" />
     <Compile Include="Poe\FileInMemory.cs" />
     <Compile Include="Poe\FilesInMemory\ItemClasses.cs" />
     <Compile Include="Poe\FilesInMemory\StatsDat.cs" />

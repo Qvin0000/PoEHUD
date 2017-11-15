@@ -37,11 +37,11 @@ namespace PoeHUD.Plugins
             catch (Exception e)
             {
                 HandlePluginError("Initialise", e);
-            }   
+            }
         }
         public void iRender()
         {
-            if (!bAllowRender) return;
+             if (!bAllowRender) return;
 
             try { Render(); }
             catch (Exception e)
@@ -66,7 +66,7 @@ namespace PoeHUD.Plugins
             }
         }
         public void iOnClose()
-        { 
+        {
             try { OnClose(); }
             catch (Exception e)
             {
@@ -126,14 +126,14 @@ namespace PoeHUD.Plugins
         }
         public static void LogError(object message, float displayTime)
         {
-            if(message == null)
+            if (message == null)
                 LogError("null", displayTime);
             else
                 LogError(message.ToString(), displayTime);
         }
         public static void LogError(string message, float displayTime)
         {
-            if(API == null)
+            if (API == null)
                 return;
 
             API.LogError(message, displayTime);
@@ -166,7 +166,7 @@ namespace PoeHUD.Plugins
         {
             API = api;
             PluginDirectory = pluginData.PluginDir;
-            LocalPluginDirectory = PluginDirectory.Substring(PluginDirectory.IndexOf(@"\plugins\") + 1); 
+            LocalPluginDirectory = PluginDirectory.Substring(PluginDirectory.IndexOf(@"\plugins\") + 1);
         }
 
         public void Destroy()

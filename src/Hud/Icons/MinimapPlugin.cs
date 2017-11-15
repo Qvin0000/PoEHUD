@@ -25,7 +25,7 @@ namespace PoeHUD.Hud.Icons
         {
             try
             {
-                if (!Settings.Enable || !GameController.InGame || !Settings.IconsOnMinimap)
+                if (!Settings.Enable || !GameController.InGameCache || !Settings.IconsOnMinimap)
                 {
                     return;
                 }
@@ -47,7 +47,7 @@ namespace PoeHUD.Hud.Icons
                 {
                     float iconZ = icon.EntityWrapper.GetComponent<Render>().Z;
                     Vector2 point = mapCenter
-                        + MapIcon.DeltaInWorldToMinimapDelta(icon.WorldPosition - playerPos, diag, SCALE, (iconZ - posZ) / 20);
+                                    + MapIcon.DeltaInWorldToMinimapDelta(icon.WorldPosition - playerPos, diag, SCALE, (iconZ - posZ) / 20);
 
                     HudTexture texture = icon.TextureIcon;
                     float size = icon.Size;

@@ -27,6 +27,7 @@ using System.Windows.Forms;
 using Color = System.Drawing.Color;
 using Graphics2D = PoeHUD.Hud.UI.Graphics;
 using Rectangle = System.Drawing.Rectangle;
+using PoeHUD.Hud.Dev;
 
 namespace PoeHUD.Hud
 {
@@ -141,7 +142,6 @@ namespace PoeHUD.Hud
             Bounds = WinApi.GetClientRectangle(gameHandle);
             WinApi.EnableTransparent(Handle, Bounds);
             graphics = new Graphics2D(this, Bounds.Width, Bounds.Height);
-
             plugins.Add(new HealthBarPlugin(gameController, graphics, settings.HealthBarSettings));
             plugins.Add(new MinimapPlugin(gameController, graphics, GatherMapIcons, settings.MapIconsSettings));
             plugins.Add(new LargeMapPlugin(gameController, graphics, GatherMapIcons, settings.MapIconsSettings));
@@ -164,6 +164,9 @@ namespace PoeHUD.Hud
             plugins.AddRange(underPanel.GetPlugins());
 
             plugins.Add(new AdvancedTooltipPlugin(gameController, graphics, settings.AdvancedTooltipSettings, settings));
+            plugins.Add(new DebugTree(gameController, graphics, settings.DebugTreeSettings));
+            plugins.Add(new DebugInformation(gameController, graphics, settings.DebugInformationSettings));
+            plugins.Add(new DebugPluginLog(gameController, graphics, settings.DebugPluginLogSettings));
             plugins.Add(new MenuPlugin(gameController, graphics, settings));
             plugins.Add(new PluginExtensionPlugin(gameController, graphics));//Should be after MenuPlugin
 
@@ -172,24 +175,13 @@ namespace PoeHUD.Hud
 
             CheckGameWindow();
             CheckGameState();
-            graphics.Performance = settings.PerformanceSettings;
-            graphics.Render += OnRender;
-            graphics.DataUpdate += OnRefreshState;
-            await Task.Run(() => graphics.RenderLoop());
+            gameController.Performance = settings.PerformanceSettings;
+            graphics.Render += () => plugins.ForEach(x => x.Render());
+            gameController.Clear += graphics.Clear;
+            gameController.Render += graphics.TryRender;
+            await Task.Run(() => gameController.WhileLoop());
         }
 
-        private void OnRender()
-        {
-            if (gameController.InGame && WinApi.IsForegroundWindow(gameHandle) && !gameController.Game.IngameState.IngameUi.TreePanel.IsVisible && !gameController.Game.IngameState.IngameUi.AtlasPanel.IsVisible)
-            {
-                plugins.ForEach(x => x.Render());
-            }
-        }
 
-        private void OnRefreshState()
-        {
-            if (gameController.InGame && WinApi.IsForegroundWindow(gameHandle))
-                gameController.RefreshState();
-        }
     }
 }

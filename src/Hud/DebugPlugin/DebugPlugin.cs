@@ -2,7 +2,6 @@
 using PoeHUD.Hud;
 using PoeHUD.Hud.Settings;
 using PoeHUD.Hud.UI;
-using PoeHUD.Models;
 using SharpDX;
 using SharpDX.Direct3D9;
 using System;
@@ -70,6 +69,8 @@ namespace PoeHUD.DebugPlug
         private static List<string> DebugDrawInfo = new List<string>();
         private static List<DisplayMessage> DebugLog = new List<DisplayMessage>();
         private static Dictionary<string, DisplayMessage> MessagesCache = new Dictionary<string, DisplayMessage>();
+        private static int capacityQueue = 5000;
+        public static Queue<(string message, DateTime time, Color color)> QueueDebugMessages = new Queue<(string message, DateTime time, Color color)>(capacityQueue);
 
         private void ClearLog()
         {
@@ -81,9 +82,9 @@ namespace PoeHUD.DebugPlug
         public static void LogMsg(object o, float delay)
         {
             if (o == null)
-                AddNewMessage("Null", delay, Color.White);
+                LogMsg("Null", delay, Color.White);
             else
-                AddNewMessage(o.ToString(), delay, Color.White);
+                LogMsg(o.ToString(), delay, Color.White);
         }
         public static void LogMsg(object o, float delay, Color color)
         {
@@ -91,6 +92,14 @@ namespace PoeHUD.DebugPlug
                 AddNewMessage("Null", delay, color);
             else
                 AddNewMessage(o.ToString(), delay, color);
+            QueueDebugMessages.Enqueue((o.ToString(), DateTime.Now, color));
+            if (QueueDebugMessages.Count > capacityQueue * 0.9)
+            {
+                for (int i = 0; i < 1000; i++)
+                {
+                    QueueDebugMessages.Dequeue();
+                }
+            }
         }
 
         private static void AddNewMessage(string message, float delay, Color color)
@@ -107,7 +116,7 @@ namespace PoeHUD.DebugPlug
             MessagesCache.Add(message, rezult);
             DebugLog.Add(rezult);
         }
-       
+
         public class DisplayMessage
         {
             public string Message;
@@ -124,7 +133,7 @@ namespace PoeHUD.DebugPlug
 
                 UpdateTime();
             }
-           
+
             public void UpdateTime()
             {
                 if (Delay != -1)

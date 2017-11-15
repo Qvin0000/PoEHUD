@@ -11,7 +11,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using Color = SharpDX.Color;
 using Graphics = PoeHUD.Hud.UI.Graphics;
@@ -42,7 +41,7 @@ namespace PoeHUD.Hud.Health
         {
             try
             {
-                if (!Settings.Enable || WinApi.IsKeyDown(Keys.F10) || !GameController.InGame ||
+                if (!Settings.Enable || WinApi.IsKeyDown(Keys.F10) || !GameController.InGameCache ||
                 !Settings.ShowInTown && GameController.Area.CurrentArea.IsTown ||
                 !Settings.ShowInTown && GameController.Area.CurrentArea.IsHideout)
                 { return; }
@@ -52,9 +51,13 @@ namespace PoeHUD.Hud.Health
 
                 Camera camera = GameController.Game.IngameState.Camera;
                 Func<HealthBar, bool> showHealthBar = x => x.IsShow(Settings.ShowEnemies);
-                Parallel.ForEach(healthBars, x => x.Value.RemoveAll(hp => !hp.Entity.IsValid));
-                foreach (HealthBar healthBar in healthBars.SelectMany(x => x.Value).AsParallel().AsOrdered()
-                    .Where(hp => showHealthBar(hp) && hp.Entity.IsAlive))
+                //Not Parallel better for performance
+                //Parallel.ForEach(healthBars, x => x.Value.RemoveAll(hp => !hp.Entity.IsValid));
+                foreach (var healthBar in healthBars)
+                {
+                    healthBar.Value.RemoveAll(hp => !hp.Entity.IsValid);
+                }
+                foreach (HealthBar healthBar in healthBars.SelectMany(x => x.Value).Where(hp => showHealthBar(hp) && hp.Entity.IsAlive))
                 {
                     Vector3 worldCoords = healthBar.Entity.Pos;
                     Vector2 mobScreenCoords = camera.WorldToScreen(worldCoords.Translate(0, 0, -170), healthBar.Entity);
@@ -147,7 +150,7 @@ namespace PoeHUD.Hud.Health
                     else if (HasDebuff(debuffPanelConfig.Poisoned, buffName, isHostile))
                         debuffTable |= 2;
                     else if (HasDebuff(debuffPanelConfig.Chilled, buffName, isHostile) ||
-                        HasDebuff(debuffPanelConfig.Frozen, buffName, isHostile))
+                             HasDebuff(debuffPanelConfig.Frozen, buffName, isHostile))
                         debuffTable |= 4;
                     else if (HasDebuff(debuffPanelConfig.Burning, buffName, isHostile))
                         debuffTable |= 8;

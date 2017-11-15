@@ -61,13 +61,13 @@ namespace PoeHUD.Hud.AdvancedTooltip
                 if (tooltip == null || poeEntity.Address == 0 || !poeEntity.IsValid) { return; }
                 RectangleF tooltipRect = tooltip.GetClientRect();
 
-               
+
 
                 var modsComponent = poeEntity.GetComponent<Mods>();
                 long id = 0;
                 if (inventoryItemIcon.ToolTipType == ToolTipType.InventoryItem)
                 {
-               
+
                     id = poeEntity.InventoryId;
                 }
                 else
@@ -83,10 +83,23 @@ namespace PoeHUD.Hud.AdvancedTooltip
                     itemEntity = poeEntity;
                 }
 
-                foreach (string tier in from item in mods where item.CouldHaveTiers() && item.Tier == 1 select " \u2605 ")
+
+                var sum = mods.Where(modValue => modValue.CouldHaveTiers() && modValue.Tier > 0).Sum(modValue => modValue.Tier);
+                var modsCount = mods.Count(x => x.Tier > 0 && !x.IsCrafted && x.CouldHaveTiers());
+                if (modsCount == 0) modsCount = 1;
+                float result = sum / (float)modsCount;
+                string str = $"{Math.Round(result, 2)} / {modsCount}";
+
+
+                if (result > 0f && result < 3.1f)
                 {
-                    Graphics.DrawText(tier, 18, tooltipRect.TopLeft.Translate(0, 56), Settings.ItemMods.T1Color);
+                    str = $" \u2605 {str}";
                 }
+                if (Math.Abs(result) > 0) Graphics.DrawText(str, 18, tooltipRect.TopLeft.Translate(25, 56), Settings.ItemMods.T3Color);
+
+                //End
+
+
                 if (Settings.ItemLevel.Enable)
                 {
                     string itemLevel = Convert.ToString(modsComponent.ItemLevel);
