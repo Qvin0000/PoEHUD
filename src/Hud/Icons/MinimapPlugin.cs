@@ -25,7 +25,7 @@ namespace PoeHUD.Hud.Icons
         {
             try
             {
-                if (!Settings.Enable || !GameController.InGameCache || !Settings.IconsOnMinimap)
+                if (!Settings.Enable || !GameController.InGame || !Settings.IconsOnMinimap)
                 {
                     return;
                 }

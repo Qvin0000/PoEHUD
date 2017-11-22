@@ -1,5 +1,6 @@
 using PoeHUD.Poe.Elements;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace PoeHUD.Poe.RemoteMemoryObjects
 {
@@ -28,6 +29,28 @@ namespace PoeHUD.Poe.RemoteMemoryObjects
         public Element GemLvlUpPanel => ReadObjectAt<Element>(0xF00);
         public ItemOnGroundTooltip ItemOnGroundTooltip => ReadObjectAt<ItemOnGroundTooltip>(0xF68);
         public Element Cursor => ReadObjectAt<Element>(0xB40);
+
+        public List<EntityLabel> AllLabels => GetLabels();
+
+        private List<EntityLabel> GetLabels()
+        {
+            Element labelsRoot = ReadObjectAt<Element>(0xD00);
+            Element allLabels = labelsRoot.ReadObjectAt<Element>(0xA08);
+            return allLabels.Children.Select(e => e.AsObject<EntityLabel>()).Where(entityLabel => entityLabel.Len > 0).ToList();
+        }
+
+
+        public Element PantheonPanel => ReadObjectAt<Element>(0xCC8);
+        public Element WaypointPanel => ReadObjectAt<Element>(0xCD8);
+        public Element CharInfoPanel => ReadObjectAt<Element>(0xCB0);
+        public Element CadiroOfferPanel => ReadObjectAt<Element>(0xDA0);
+        public Element CardTradePanel => ReadObjectAt<Element>(0xE08);
+        public Element LabChoicePanel => ReadObjectAt<Element>(0xDD8);
+        public Element TradePanel => ReadObjectAt<Element>(0xD90);
+        public Element InstancePanel => ReadObjectAt<Element>(0xE48);
+        public Element MapDevicePanel => ReadObjectAt<Element>(0xDC8);
+        public StashElement StashPanel => ReadObjectAt<StashElement>(0xC78);
+
     }
 }
 

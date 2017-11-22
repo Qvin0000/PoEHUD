@@ -15,11 +15,11 @@ namespace PoeHUD.Poe.Components
 
         public bool isAttacking => (ActionId & 2) > 0;
 
-        public List<long> Minions
+        public List<int> Minions
         {
             get
             {
-                var list = new List<long>();
+                var list = new List<int>();
                 if (Address == 0)
                 {
                     return list;
@@ -28,8 +28,9 @@ namespace PoeHUD.Poe.Components
                 long num2 = M.ReadLong(Address + 0x310);
                 for (long i = num; i < num2; i += 8)
                 {
-                    long item = M.ReadLong(i);
-                    list.Add(item);
+                    // using int instead of long because first 4 bytes are id
+                    // second 4 bytes are wierd number which depend on socket number/location.
+                    int item = M.ReadInt(i);
                 }
                 return list;
             }

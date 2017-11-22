@@ -242,8 +242,9 @@
     <Compile Include="Hud\Settings\ListNode.cs" />
     <Compile Include="Hud\SizedPlugin.cs" />
     <Compile Include="Hud\SizedPluginWithMapIcons.cs" />
-    <Compile Include="Hud\UI\Vertexes\CustomVertex.cs" />
+    <Compile Include="Hud\UI\Vertexes\GuiVertex.cs" />
     <Compile Include="Models\BaseItemType.cs" />
+    <Compile Include="Models\Cache.cs" />
     <Compile Include="Models\ConfigLineBase.cs" />
     <Compile Include="Models\Enums\DiagnosticInfoType.cs" />
     <Compile Include="Models\Enums\InventoryType.cs" />

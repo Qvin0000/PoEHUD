@@ -55,5 +55,13 @@ namespace PoeHUD.Framework.Helpers
         {
             return new Vector3(vector.X + dx, vector.Y + dy, vector.Z + dz);
         }
+
+
+
+        public static float Distance(this Vector2 a, Vector2 b)
+        {
+            return (float)Math.Sqrt(Math.Pow(a.X - b.X, 2) +
+                                    Math.Pow(a.Y - b.Y, 2));
+        }
     }
 }

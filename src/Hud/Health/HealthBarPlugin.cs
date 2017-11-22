@@ -41,7 +41,7 @@ namespace PoeHUD.Hud.Health
         {
             try
             {
-                if (!Settings.Enable || WinApi.IsKeyDown(Keys.F10) || !GameController.InGameCache ||
+                if (!Settings.Enable || WinApi.IsKeyDown(Keys.F10) || !GameController.InGame ||
                 !Settings.ShowInTown && GameController.Area.CurrentArea.IsTown ||
                 !Settings.ShowInTown && GameController.Area.CurrentArea.IsHideout)
                 { return; }

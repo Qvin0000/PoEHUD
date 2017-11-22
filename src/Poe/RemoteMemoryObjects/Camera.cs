@@ -24,7 +24,9 @@ namespace PoeHUD.Poe.RemoteMemoryObjects
         {
             Entity localPlayer = Game.IngameState.Data.LocalPlayer;
             var isplayer = localPlayer.Address == entityWrapper.Address && localPlayer.IsValid;
-            var playerMoving = isplayer && localPlayer.GetComponent<Actor>().isMoving;
+            bool isMoving = false;
+            isMoving = Cache.Enable ? Cache.Instance.LocalPlayer_Actor.isMoving : localPlayer.GetComponent<Actor>().isMoving;
+            var playerMoving = isplayer && isMoving;
             float x, y;
             long addr = Address + 0xE4;
             fixed (byte* numRef = M.ReadBytes(addr, 0x40))

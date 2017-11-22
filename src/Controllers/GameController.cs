@@ -1,15 +1,13 @@
 using System;
+using System.Collections;
 using PoeHUD.Framework;
 using PoeHUD.Models;
-using PoeHUD.Poe.Components;
 using PoeHUD.Poe.RemoteMemoryObjects;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.Threading;
 using PoeHUD.Framework.Helpers;
 using PoeHUD.Hud.Performance;
-
 
 namespace PoeHUD.Controllers
 {
@@ -20,6 +18,11 @@ namespace PoeHUD.Controllers
         public GameController(Memory memory)
         {
             Instance = this;
+            if (Cache.Enable)
+            {
+                Cache.Enable = false;
+                (new Coroutine(EnableCacheTimeout(), nameof(GameController), "Init Cache Enable")).Run();
+            }
             Memory = memory;
             Area = new AreaController(this);
             EntityListWrapper = new EntityListWrapper(this);
@@ -27,7 +30,7 @@ namespace PoeHUD.Controllers
             Game = new TheGame(memory);
             Files = new FsController(memory);
             CoroutineRunner = Runner.Instance;
-            InGameCache = InGame;
+            InGame = InGameReal;
             IsForeGroundCache = WinApi.IsForegroundWindow(Window.Process.MainWindowHandle);
         }
 
@@ -35,29 +38,37 @@ namespace PoeHUD.Controllers
         public GameWindow Window { get; private set; }
         public TheGame Game { get; }
         public AreaController Area { get; }
-
+        public Cache Cache { get; set; }
         public Memory Memory { get; private set; }
 
         public IEnumerable<EntityWrapper> Entities => EntityListWrapper.Entities;
 
         public EntityWrapper Player => EntityListWrapper.Player;
-        public bool InGameCache { get; private set; }
-        public bool InGame => Game.IngameState.InGame;
+        public bool InGame { get; private set; }
+        public bool InGameReal => Game.IngameStateReal.InGame;
         public bool AutoResume { get; set; }
         public FsController Files { get; private set; }
         public bool IsForeGroundCache { get; private set; }
 
 
-        public List<EntityWrapper> GetAllPlayerMinions() =>
-            Entities.Where(x => x.HasComponent<Player>()).SelectMany(c => c.Minions).ToList();
+
 
         public Action Render;
         public Action Clear;
         public Dictionary<string, float> DebugInformation = new Dictionary<string, float>();
         public readonly Runner CoroutineRunner;
         public PerformanceSettings Performance;
+
+        IEnumerator EnableCacheTimeout()
+        {
+                yield return new WaitRender();
+                Cache.Enable = true;
+        }
+
+        public long RenderCount { get; private set; }
         public void WhileLoop()
         {
+            Cache = Cache.Instance;
             DebugInformation["FpsLoop"] = 0;
             DebugInformation["FpsRender"] = 0;
             DebugInformation["FpsCoroutine"] = 0;
@@ -78,18 +89,30 @@ namespace PoeHUD.Controllers
             {
                 loopLimit = Performance.LoopLimit;
                 skipTicksRender = 1000f / Performance.RenderLimit.Value;
+                Cache.Enable = Performance.Cache.Value;
             }
 
-            var updateArea = (new Coroutine(() => { Area.RefreshState(); }, 100, nameof(GameController), "Update area") { Priority = CoroutinePriority.High }).Run();
 
-            var updateEntity = (new Coroutine(() => { EntityListWrapper.RefreshState(); }, 50, nameof(GameController), "Update Entity") { Priority = CoroutinePriority.High }).Run();
+            var updateArea = (new Coroutine(() => { Area.RefreshState(); }, 100, nameof(GameController), "Update area") { Priority = CoroutinePriority.High });
 
+            var updateEntity = (new Coroutine(() => { EntityListWrapper.RefreshState(); }, 50, nameof(GameController), "Update Entity") { Priority = CoroutinePriority.High });
+
+            var updateGameState = (new Coroutine(() => {
+                InGame = InGameReal;
+                IsForeGroundCache = WinApi.IsForegroundWindow(Window.Process.MainWindowHandle);
+            }, 100, nameof(GameController), "Update Game State")
+            { Priority = CoroutinePriority.Critical }).Run();
+
+
+
+            updateArea.AutoRestart().Run();
+            updateEntity.AutoRestart().Run();
+
+            int i = 0;
             void Action()
             {
-                InGameCache = InGame;
-                IsForeGroundCache = WinApi.IsForegroundWindow(Window.Process.MainWindowHandle);
                 var allCoroutines = CoroutineRunner.Coroutines;
-                if (!InGameCache || !IsForeGroundCache)
+                if (!InGame || !IsForeGroundCache)
                 {
                     Clear.SafeInvoke();
                     CoroutineRunner.StopCoroutines(allCoroutines);
@@ -107,40 +130,52 @@ namespace PoeHUD.Controllers
                 {
                     skipTicksRender = 1000f / Performance.RenderLimit.Value;
                     loopLimit = (int)(200 + Math.Pow(Performance.LoopLimit, 2));
-                    updateEntity.TimeoutForAction = 1000 / Performance.UpdateDataLimit.Value;
+                    updateEntity.TimeoutForAction = 1000 / Performance.UpdateEntityDataLimit.Value;
+                    Cache.Enable = Performance.Cache.Value;
                 }
                 if (nextRenderTick - sw.ElapsedMilliseconds > deltaError || nextRenderTick - sw.ElapsedMilliseconds < deltaError)
                 {
                     nextRenderTick = sw.ElapsedMilliseconds;
                 }
+                i++;
+                if (i % 4 == 0)
+                {
+                    foreach (var autorestartCoroutine in CoroutineRunner.AutorestartCoroutines)
+                    {
+                        if (!CoroutineRunner.HasName(autorestartCoroutine.Name))
+                            autorestartCoroutine.GetCopy().Run();
+                    }
+                }
             }
 
             var updateCoroutine = new Coroutine(Action, 250, nameof(GameController), "$#Main#$") { Priority = CoroutinePriority.Critical };
             updateCoroutine = CoroutineRunner.Run(updateCoroutine);
-
-
-
             sw.Restart();
             while (true)
             {
-                if (!InGameCache)
+                if (!InGame)
                 {
-                    Thread.Sleep(100);
+                    Thread.Sleep(50);
                 }
 
                 var startFrameTime = sw.Elapsed.TotalMilliseconds;
 
-                if (CoroutineRunner.IsRunning)
+                for (int j = 0; j < Runner.Instance.RunPerLoopIter; j++)
                 {
-                    fpsCoroutine++;
-                    CoroutineRunner.Update();
+                    if (CoroutineRunner.IsRunning)
+                    {
+                        fpsCoroutine++;
+                        CoroutineRunner.Update();
+                    }
                 }
 
-                if (sw.Elapsed.TotalMilliseconds > nextRenderTick && InGameCache && IsForeGroundCache)
+
+                if (sw.Elapsed.TotalMilliseconds > nextRenderTick && InGame && IsForeGroundCache)
                 {
                     Render.SafeInvoke();
                     nextRenderTick += skipTicksRender;
                     fpsRender++;
+                    RenderCount++;
                 }
 
 

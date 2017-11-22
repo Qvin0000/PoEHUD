@@ -14,32 +14,53 @@ namespace PoeHUD.Framework
         public bool IsRunning => _coroutines.Count > 0;
         public Stopwatch sw = Stopwatch.StartNew();
         public IEnumerable<(string Name, string Owner, long Ticks, DateTime End, DateTime Started)> FinishedCoroutines => _finishedCoroutines;
+        public int FinishedCoroutineCount { get; private set; } = 0;
         public static Runner Instance => _instance ?? (_instance = new Runner());
         public IEnumerable<Coroutine> Coroutines => _coroutines;
         public IEnumerable<Coroutine> WorkingCoroutines => _coroutines.Where(x => x.DoWork);
-
+        private readonly HashSet<Coroutine> _autorestartCoroutines = new HashSet<Coroutine>();
+        public IEnumerable<Coroutine> AutorestartCoroutines => _autorestartCoroutines;
         public Coroutine GetCoroutineByname(string name) => _coroutines.FirstOrDefault(x => x.Name.Contains(name));
+        public int CountAddCoroutines { get; private set; }
+        public int CountFalseAddCoroutines { get; private set; }
+        public int RunPerLoopIter { get; set; } = 1;
         private Runner()
         {
         }
 
-        public Coroutine Run(IEnumerator enumerator, string owner)
+        public Coroutine Run(IEnumerator enumerator, string owner, string name = null)
         {
-            var routine = new Coroutine(enumerator, owner);
-            var first = _coroutines.FirstOrDefault(x => x.Name == routine.Name);
-            if (first != null) return first;
+            var routine = new Coroutine(enumerator, owner, name);
+
+            var first = _coroutines.FirstOrDefault(x => x.Name == routine.Name && x.Owner == routine.Owner);
+            if (first != null)
+            {
+                CountFalseAddCoroutines++;
+                return first;
+            }
             _coroutines.Add(routine);
+            CountAddCoroutines++;
             return routine;
         }
 
         public Coroutine Run(Coroutine routine)
         {
-            var first = _coroutines.FirstOrDefault(x => x.Name == routine.Name);
-            if (first != null) return first;
+            var first = _coroutines.FirstOrDefault(x => x.Name == routine.Name && x.Owner == routine.Owner);
+            if (first != null)
+            {
+                CountFalseAddCoroutines++;
+                return first;
+            }
             _coroutines.Add(routine);
+            CountAddCoroutines++;
             return routine;
         }
 
+
+        private bool CheckExists(Coroutine coroutine)
+        {
+            return true;
+        }
         public void StopCoroutines(IEnumerable<Coroutine> coroutines)
         {
             foreach (var coroutine in coroutines)
@@ -49,7 +70,8 @@ namespace PoeHUD.Framework
         public void ResumeCoroutines(IEnumerable<Coroutine> coroutines)
         {
             foreach (var coroutine in coroutines)
-                coroutine.Resume();
+                if (coroutine.AutoResume)
+                    coroutine.Resume();
         }
         public bool HasName(string name) => _coroutines.Any(x => x.Name == name);
 
@@ -76,13 +98,23 @@ namespace PoeHUD.Framework
                     else
                     {
                         if (_coroutines[i] != null)
-                            _finishedCoroutines.Add((_coroutines[i].Name, _coroutines[i].Owner, _coroutines[i].Ticks, DateTime.Now, _coroutines[i].Started));
+                        {
+                            _finishedCoroutines.Add(
+                                (_coroutines[i].Name, _coroutines[i].Owner, _coroutines[i].Ticks, DateTime.Now,
+                                _coroutines[i].Started));
+                            FinishedCoroutineCount++;
+                        }
                         _coroutines.RemoveAt(i);
                     }
                 }
                 return true;
             }
             return false;
+        }
+
+        public void AddToAutoupdate(Coroutine coroutine)
+        {
+            this._autorestartCoroutines.Add(coroutine.GetCopy(coroutine));
         }
     }
 }

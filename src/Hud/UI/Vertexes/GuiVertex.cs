@@ -5,7 +5,7 @@ using SharpDX.Direct3D9;
 namespace PoeHUD.Hud.UI.Vertexes
 {
     [StructLayout(LayoutKind.Sequential)]
-    public struct CustomVertex
+    public struct GuiVertex
     {
         public static readonly VertexElement[] VertexElements =
         {
@@ -21,7 +21,7 @@ namespace PoeHUD.Hud.UI.Vertexes
         public uint col;
 
 
-        public CustomVertex(float x, float y, float u, float v, uint diffuse)
+        public GuiVertex(float x, float y, float u, float v, uint diffuse)
         {
             pos = new Vector2(x, y);
             uv = new Vector2(u, v);

@@ -3,7 +3,6 @@ using PoeHUD.Models.Interfaces;
 using PoeHUD.Poe;
 using PoeHUD.Poe.Components;
 using System.Collections.Generic;
-using System.Linq;
 using Vector3 = SharpDX.Vector3;
 
 namespace PoeHUD.Models
@@ -49,13 +48,7 @@ namespace PoeHUD.Models
             }
         }
 
-        public List<EntityWrapper> Minions
-        {
-            get
-            {
-                return GetComponent<Actor>().Minions.Select(current => gameController.EntityListWrapper.GetEntityById(current)).Where(byId => byId != null).ToList();
-            }
-        }
+
 
         public T GetComponent<T>() where T : Component, new()
         {

@@ -25,7 +25,7 @@ namespace PoeHUD.Framework
                 offsets = offs;
                 Process = Process.GetProcessById(pId);
                 AddressOfProcess = Process.MainModule.BaseAddress.ToInt64();
-                procHandle = WinApi.OpenProcess(Process, ProcessAccessFlags.All);
+                procHandle = WinApi.OpenProcess(Process, ProcessAccessFlags.VirtualMemoryRead);
                 modules = new Dictionary<string, int>();
             }
             catch (Win32Exception ex)
@@ -69,17 +69,31 @@ namespace PoeHUD.Framework
 
         public int ReadInt(int addr, params int[] offsets)
         {
+            //I think for better for often operation
             int num = ReadInt(addr);
-            return offsets.Aggregate(num, (current, num2) => ReadInt(current + num2));
+            int result = num;
+            for (var index = 0; index < offsets.Length; index++)
+            {
+                var offset = offsets[index];
+                result = ReadInt(result + offset);
+            }
+            return result;
         }
 
         public int ReadInt(long addr, params long[] offsets)
         {
+            //I think for better for often operation
             long num = ReadLong(addr);
-            return (int)offsets.Aggregate(num, (current, num2) => ReadLong(current + num2));
+            long result = num;
+            for (var index = 0; index < offsets.Length; index++)
+            {
+                var offset = offsets[index];
+                result = ReadLong(result + offset);
+            }
+            return (int)result;
         }
 
-      
+
 
 
         public float ReadFloat(long addr)
@@ -94,8 +108,15 @@ namespace PoeHUD.Framework
 
         public long ReadLong(long addr, params long[] offsets)
         {
+            //I think it better for often operation
             long num = ReadLong(addr);
-            return offsets.Aggregate(num, (current, num2) => ReadLong(current + num2));
+            long result = num;
+            for (var index = 0; index < offsets.Length; index++)
+            {
+                var offset = offsets[index];
+                result = ReadLong(result + offset);
+            }
+            return result;
         }
 
         public uint ReadUInt(long addr)
@@ -191,7 +212,7 @@ namespace PoeHUD.Framework
 
                 bool found = false;
 
-                for (int offset = 0; offset < exeImage.Length - patternLength; offset ++)
+                for (int offset = 0; offset < exeImage.Length - patternLength; offset++)
                 {
                     if (CompareData(pattern, exeImage, offset))
                     {
@@ -202,7 +223,7 @@ namespace PoeHUD.Framework
                     }
                 }
 
-                if(!found)
+                if (!found)
                 {
                     //System.Windows.Forms.MessageBox.Show("Pattern " + iPattern + " is not found!");
                     DebugStr += "Pattern " + iPattern + " is not found!" + Environment.NewLine;

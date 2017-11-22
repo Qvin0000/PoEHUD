@@ -316,7 +316,7 @@ namespace PoeHUD.Hud.UI.Renderers
                 device.SetTransform(TransformState.View, ref mat_identity);
                 device.SetTransform(TransformState.Projection, ref mat_projection);
             }
-            using (device.VertexDeclaration = new VertexDeclaration(device, CustomVertex.VertexElements))
+            using (device.VertexDeclaration = new VertexDeclaration(device, GuiVertex.VertexElements))
             {
                 for (var n = 0; n < drawData->CmdListsCount; n++)
                 {
@@ -324,12 +324,12 @@ namespace PoeHUD.Hud.UI.Renderers
                     DrawVert* vtx_buffer = (DrawVert*)cmdList->VtxBuffer.Data;
                     ushort* idx_buffer = (ushort*)cmdList->IdxBuffer.Data;
 
-                    var myCustomVertices = new CustomVertex[cmdList->VtxBuffer.Size];
+                    var myCustomVertices = new GuiVertex[cmdList->VtxBuffer.Size];
                     for (var i = 0; i < myCustomVertices.Length; i++)
                     {
                         var cl = (vtx_buffer[i].col & 0xFF00FF00) | ((vtx_buffer[i].col & 0xFF0000) >> 16) | ((vtx_buffer[i].col & 0xFF) << 16);
                         myCustomVertices[i] =
-                            new CustomVertex(vtx_buffer[i].pos.X, vtx_buffer[i].pos.Y, vtx_buffer[i].uv.X, vtx_buffer[i].uv.Y, cl);
+                            new GuiVertex(vtx_buffer[i].pos.X, vtx_buffer[i].pos.Y, vtx_buffer[i].uv.X, vtx_buffer[i].uv.Y, cl);
                     }
 
                     for (var i = 0; i < cmdList->CmdBuffer.Size; i++)

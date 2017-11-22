@@ -28,7 +28,7 @@ namespace PoeHUD.Hud.Icons
 
             try
             {
-                if (!Settings.Enable || !GameController.InGameCache || !Settings.IconsOnLargeMap
+                if (!Settings.Enable || !GameController.InGame || !Settings.IconsOnLargeMap
                     || !GameController.Game.IngameState.IngameUi.Map.LargeMap.IsVisible)
                 {
                     return;

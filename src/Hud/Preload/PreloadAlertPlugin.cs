@@ -90,7 +90,6 @@ namespace PoeHUD.Hud.Preload
 
             PerandusLeague = new Dictionary<string, PreloadConfigLine>
             {
-                {"Metadata/NPC/League/Cadiro", new PreloadConfigLine { Text = "Cadiro Trader", FastColor = () => Settings.CadiroTrader }},
                 {"Metadata/Chests/PerandusChests/PerandusChestStandard", new PreloadConfigLine { Text = "Perandus Chest", FastColor = () => Settings.PerandusChestStandard }},
                 {"Metadata/Chests/PerandusChests/PerandusChestRarity", new PreloadConfigLine { Text = "Perandus Cache", FastColor = () => Settings.PerandusChestRarity }},
                 {"Metadata/Chests/PerandusChests/PerandusChestQuantity", new PreloadConfigLine { Text = "Perandus Hoard", FastColor = () => Settings.PerandusChestQuantity }},
@@ -195,8 +194,8 @@ namespace PoeHUD.Hud.Preload
                 ResetArea();
                 Parse();
             }
-            
-            
+
+
             if (!holdKey && WinApi.IsKeyDown(Keys.F10))
             {
                 holdKey = true;
@@ -218,7 +217,7 @@ namespace PoeHUD.Hud.Preload
                 Size = new Size2F();
                 return;
             }
-            
+
             if (isAreaChanged)
             {
                 ResetArea();
@@ -269,7 +268,7 @@ namespace PoeHUD.Hud.Preload
 
             int areaChangeCount = GameController.Game.AreaChangeCount;
             long listIterator = memory.ReadLong(pFileRoot + 0x8, 0x0);
-            
+
             List<string> preloadStrings = new List<string>();
 
             for (int i = 0; i < count; i++)
@@ -285,7 +284,7 @@ namespace PoeHUD.Hud.Preload
                 {
                     continue;
                 }
-                
+
                 string text = memory.ReadStringU(memory.ReadLong(listIterator + 0x10), 512);
 
                 if (text.Contains('@')) { text = text.Split('@')[0]; }
@@ -326,7 +325,7 @@ namespace PoeHUD.Hud.Preload
                 return;
             }
 
-    
+
             if (Settings.Essence)
             {
                 PreloadConfigLine essence_alert = Essences.Where(kv => text
@@ -347,7 +346,7 @@ namespace PoeHUD.Hud.Preload
                 }
             }
 
-         
+
             PreloadConfigLine perandus_alert = PerandusLeague.Where(kv => text
                 .StartsWith(kv.Key, StringComparison.OrdinalIgnoreCase)).Select(kv => kv.Value).FirstOrDefault();
             if (perandus_alert != null && Settings.PerandusBoxes)
@@ -365,7 +364,7 @@ namespace PoeHUD.Hud.Preload
                 alerts.Add(new PreloadConfigLine { Text = "Unknown Perandus Chest", FastColor = () => Settings.PerandusChestStandard });
             }
 
-         
+
             PreloadConfigLine _alert = Strongboxes.Where(kv => text
                 .StartsWith(kv.Key, StringComparison.OrdinalIgnoreCase)).Select(kv => kv.Value).FirstOrDefault();
             if (_alert != null && Settings.Strongboxes)
@@ -374,7 +373,7 @@ namespace PoeHUD.Hud.Preload
                 return;
             }
 
-            
+
             PreloadConfigLine alert = Preload.Where(kv => text
                 .EndsWith(kv.Key, StringComparison.OrdinalIgnoreCase)).Select(kv => kv.Value).FirstOrDefault();
             if (alert != null && Settings.Exiles)
