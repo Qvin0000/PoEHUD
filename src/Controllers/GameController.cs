@@ -18,29 +18,30 @@ namespace PoeHUD.Controllers
         public GameController(Memory memory)
         {
             Instance = this;
-            if (Cache.Enable)
-            {
-                Cache.Enable = false;
-                (new Coroutine(EnableCacheTimeout(), nameof(GameController), "Init Cache Enable")).Run();
-            }
             Memory = memory;
             Area = new AreaController(this);
             EntityListWrapper = new EntityListWrapper(this);
             Window = new GameWindow(memory.Process);
             Game = new TheGame(memory);
             Files = new FsController(memory);
-            CoroutineRunner = Runner.Instance;
+            CoroutineRunner = new Runner();
             InGame = InGameReal;
             IsForeGroundCache = WinApi.IsForegroundWindow(Window.Process.MainWindowHandle);
+            Cache = new Cache();
+            if (Cache.Enable)
+            {
+                Cache.Enable = false;
+                (new Coroutine(EnableCacheTimeout(), nameof(GameController), "Cache Enabler")).Run();
+            }
         }
 
         public EntityListWrapper EntityListWrapper { get; }
         public GameWindow Window { get; private set; }
         public TheGame Game { get; }
         public AreaController Area { get; }
-        public Cache Cache { get; set; }
+        public Cache Cache { get; private set; }
         public Memory Memory { get; private set; }
-
+        public Stopwatch sw = Stopwatch.StartNew();
         public IEnumerable<EntityWrapper> Entities => EntityListWrapper.Entities;
 
         public EntityWrapper Player => EntityListWrapper.Player;
@@ -61,14 +62,22 @@ namespace PoeHUD.Controllers
 
         IEnumerator EnableCacheTimeout()
         {
+
+            bool enabled = false;
+            while (!enabled)
+            {
                 yield return new WaitRender();
                 Cache.Enable = true;
+                enabled = true;
+
+            }
+
         }
 
         public long RenderCount { get; private set; }
         public void WhileLoop()
         {
-            Cache = Cache.Instance;
+
             DebugInformation["FpsLoop"] = 0;
             DebugInformation["FpsRender"] = 0;
             DebugInformation["FpsCoroutine"] = 0;
@@ -100,6 +109,7 @@ namespace PoeHUD.Controllers
             var updateGameState = (new Coroutine(() => {
                 InGame = InGameReal;
                 IsForeGroundCache = WinApi.IsForegroundWindow(Window.Process.MainWindowHandle);
+                Window.CacheWindow = Window.GetWindowRectangle();
             }, 100, nameof(GameController), "Update Game State")
             { Priority = CoroutinePriority.Critical }).Run();
 
@@ -160,7 +170,7 @@ namespace PoeHUD.Controllers
 
                 var startFrameTime = sw.Elapsed.TotalMilliseconds;
 
-                for (int j = 0; j < Runner.Instance.RunPerLoopIter; j++)
+                for (int j = 0; j < CoroutineRunner.RunPerLoopIter; j++)
                 {
                     if (CoroutineRunner.IsRunning)
                     {

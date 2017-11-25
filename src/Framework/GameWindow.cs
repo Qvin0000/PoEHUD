@@ -14,6 +14,7 @@ namespace PoeHUD.Framework
         {
             Process = process;
             handle = process.MainWindowHandle;
+            CacheWindow = GetWindowRectangle();
         }
 
         public Process Process { get; private set; }
@@ -24,6 +25,7 @@ namespace PoeHUD.Framework
             return new RectangleF(rectangle.X, rectangle.Y, rectangle.Width, rectangle.Height);
         }
 
+        public RectangleF CacheWindow;
         public bool IsForeground()
         {
             return WinApi.IsForegroundWindow(handle);

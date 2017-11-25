@@ -33,7 +33,6 @@ namespace PoeHUD.Models
 
         public IngameData Data => _data ?? (_data = _gameController.Game.IngameState.DataReal);
 
-
         public DiagnosticElement FPSRectangle => _fpsRectangle ?? (_fpsRectangle = _gameController.Game.IngameState.FPSRectangleReal);
 
         public DiagnosticElement LatencyRectangle
@@ -46,11 +45,11 @@ namespace PoeHUD.Models
         public Actor LocalPlayer_Actor => _localPlayerActor ?? (_localPlayerActor =
                                               _gameController.Game.IngameState.Data.LocalPlayerReal.GetComponent<Actor>());
 
-        public static Cache Instance => _instance ?? (_instance = new Cache());
 
-        public static bool Enable { get; set; } = true;
 
-        private Cache()
+        public bool Enable { get; set; } = true;
+
+        public Cache()
         {
             _gameController = GameController.Instance;
             _gameController.Area.OnAreaChange += controller => { UpdateCache(); };

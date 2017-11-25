@@ -88,10 +88,55 @@ namespace PoeHUD.Hud.Trackers
                     return new ChestMapIcon(e, new HudTexture("strongbox.png", Settings.BreachChestColor), () => Settings.BreachChest, Settings.BreachChestIcon);
                 }
 
-                return e.GetComponent<Chest>().IsStrongbox
-                    ? new ChestMapIcon(e, new HudTexture("strongbox.png",
-                    e.GetComponent<ObjectMagicProperties>().Rarity), () => Settings.Strongboxes, Settings.StrongboxesIcon)
-                    : new ChestMapIcon(e, new HudTexture("chest.png"), () => Settings.Chests, Settings.ChestsIcon);
+                if (e.GetComponent<Chest>().IsStrongbox)
+                {
+                    if (e.Path.Contains("Arcanist"))
+                    {
+                        return new ChestMapIcon(e, new HudTexture("arcanist.png",
+                                e.GetComponent<ObjectMagicProperties>().Rarity), () => Settings.Strongboxes,
+                            Settings.StrongboxesIcon);
+                    }
+                    if (e.Path.Contains("Divine"))
+                    {
+                        return new ChestMapIcon(e, new HudTexture("diviner.png",
+                                e.GetComponent<ObjectMagicProperties>().Rarity), () => Settings.Strongboxes,
+                            Settings.StrongboxesIcon);
+                    }
+                    if (e.Path.Contains("Armory"))
+                    {
+                        return new ChestMapIcon(e, new HudTexture("armory.png",
+                                e.GetComponent<ObjectMagicProperties>().Rarity), () => Settings.Strongboxes,
+                            Settings.StrongboxesIcon);
+                    }
+                    if (e.Path.Contains("Large") || e.Path.Contains("Ornate"))
+                    {
+                        return new ChestMapIcon(e, new HudTexture("large.png",
+                                e.GetComponent<ObjectMagicProperties>().Rarity), () => Settings.Strongboxes,
+                            Settings.StrongboxesIcon);
+                    }
+                    if (e.Path.Contains("Artisan"))
+                    {
+                        return new ChestMapIcon(e, new HudTexture("artisan.png",
+                                e.GetComponent<ObjectMagicProperties>().Rarity), () => Settings.Strongboxes,
+                            Settings.StrongboxesIcon);
+                    }
+                    if (e.Path.Contains("Blacksm"))
+                    {
+                        return new ChestMapIcon(e, new HudTexture("blacksmith.png",
+                                e.GetComponent<ObjectMagicProperties>().Rarity), () => Settings.Strongboxes,
+                            Settings.StrongboxesIcon);
+                    }
+                    if (e.Path.Contains("Gemcutter"))
+                    {
+                        return new ChestMapIcon(e, new HudTexture("gemcutter.png",
+                                e.GetComponent<ObjectMagicProperties>().Rarity), () => Settings.Strongboxes,
+                            Settings.StrongboxesIcon);
+                    }
+                    return new ChestMapIcon(e, new HudTexture("strongbox.png",
+                            e.GetComponent<ObjectMagicProperties>().Rarity), () => Settings.Strongboxes,
+                        Settings.StrongboxesIcon);
+                }
+                return new ChestMapIcon(e, new HudTexture("chest.png"), () => Settings.Chests, Settings.ChestsIcon);
             }
             return null;
         }

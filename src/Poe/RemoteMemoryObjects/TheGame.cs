@@ -1,3 +1,4 @@
+using PoeHUD.Controllers;
 using PoeHUD.Framework;
 using PoeHUD.Models;
 
@@ -11,7 +12,7 @@ namespace PoeHUD.Poe.RemoteMemoryObjects
             Address = m.ReadLong(Offsets.Base + m.AddressOfProcess, 0x8, 0xf8);//0xC40
             Game = this;
         }
-        public IngameState IngameState => Cache.Enable ? Cache.Instance.IngameState : IngameStateReal;
+        public IngameState IngameState => GameController.Instance.Cache.Enable ? GameController.Instance.Cache.IngameState : IngameStateReal;
 
         public IngameState IngameStateReal => ReadObject<IngameState>(Address + 0x38);
 

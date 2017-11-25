@@ -1,6 +1,5 @@
 ﻿using PoeHUD.Hud.Settings;
 
-
 namespace PoeHUD.Hud.Performance
 {
     public sealed class PerformanceSettings : SettingsBase
@@ -14,7 +13,7 @@ namespace PoeHUD.Hud.Performance
             UpdateEntityDataLimit = new RangeNode<int>(20, 10, 200);
             RenderLimit = new RangeNode<int>(50, 10, 200);
             LoopLimit = new RangeNode<int>(1, 1, 300);
-            Cache = new ToggleNode(Models.Cache.Enable);
+            Cache = new ToggleNode(true);
         }
 
 

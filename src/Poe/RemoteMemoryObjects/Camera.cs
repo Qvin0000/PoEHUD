@@ -2,6 +2,7 @@ using PoeHUD.Models;
 using PoeHUD.Poe.Components;
 using System;
 using System.Numerics;
+using PoeHUD.Controllers;
 using Vector2 = SharpDX.Vector2;
 using Vector3 = SharpDX.Vector3;
 using Vector4 = System.Numerics.Vector4;
@@ -25,7 +26,7 @@ namespace PoeHUD.Poe.RemoteMemoryObjects
             Entity localPlayer = Game.IngameState.Data.LocalPlayer;
             var isplayer = localPlayer.Address == entityWrapper.Address && localPlayer.IsValid;
             bool isMoving = false;
-            isMoving = Cache.Enable ? Cache.Instance.LocalPlayer_Actor.isMoving : localPlayer.GetComponent<Actor>().isMoving;
+            isMoving = GameController.Instance.Cache.Enable ? GameController.Instance.Cache.LocalPlayer_Actor.isMoving : localPlayer.GetComponent<Actor>().isMoving;
             var playerMoving = isplayer && isMoving;
             float x, y;
             long addr = Address + 0xE4;

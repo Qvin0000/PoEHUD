@@ -3,6 +3,7 @@ using System.Collections;
 using System.Security.Cryptography;
 using PoeHUD.Controllers;
 
+
 namespace PoeHUD.Framework
 {
     public class Coroutine
@@ -148,8 +149,8 @@ namespace PoeHUD.Framework
 
         IEnumerator WaitMs(int ms)
         {
-            var waiter = Runner.Instance.sw.ElapsedMilliseconds + ms;
-            while (Runner.Instance.sw.ElapsedMilliseconds < waiter)
+            var waiter = GameController.Instance.sw.ElapsedMilliseconds + ms;
+            while (GameController.Instance.sw.ElapsedMilliseconds < waiter)
             {
                 yield return null;
             }

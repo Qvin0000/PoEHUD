@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Security.Cryptography.X509Certificates;
 
 namespace PoeHUD.Framework
 {
@@ -10,12 +11,9 @@ namespace PoeHUD.Framework
     {
         readonly List<Coroutine> _coroutines = new List<Coroutine>();
         readonly List<(string name, string owner, long ticks, DateTime end, DateTime start)> _finishedCoroutines = new List<(string name, string owner, long ticks, DateTime end, DateTime start)>();
-        private static Runner _instance;
         public bool IsRunning => _coroutines.Count > 0;
-        public Stopwatch sw = Stopwatch.StartNew();
         public IEnumerable<(string Name, string Owner, long Ticks, DateTime End, DateTime Started)> FinishedCoroutines => _finishedCoroutines;
         public int FinishedCoroutineCount { get; private set; } = 0;
-        public static Runner Instance => _instance ?? (_instance = new Runner());
         public IEnumerable<Coroutine> Coroutines => _coroutines;
         public IEnumerable<Coroutine> WorkingCoroutines => _coroutines.Where(x => x.DoWork);
         private readonly HashSet<Coroutine> _autorestartCoroutines = new HashSet<Coroutine>();
@@ -23,8 +21,8 @@ namespace PoeHUD.Framework
         public Coroutine GetCoroutineByname(string name) => _coroutines.FirstOrDefault(x => x.Name.Contains(name));
         public int CountAddCoroutines { get; private set; }
         public int CountFalseAddCoroutines { get; private set; }
-        public int RunPerLoopIter { get; set; } = 1;
-        private Runner()
+        public int RunPerLoopIter { get; set; } = 3;
+        public Runner()
         {
         }
 

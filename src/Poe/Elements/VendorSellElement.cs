@@ -8,7 +8,7 @@ namespace PoeHUD.Poe.Elements
 {
     public class VendorSellElement : Element
     {
-        public Element Accept => Children[3].Children[5];
-        public Element Cancel => Children[3].Children[6];
+        public Element Accept => IsVisible ? Children[3].Children[5] : null;
+        public Element Cancel => IsVisible ? Children[3].Children[6] : null;
     }
 }

@@ -1,26 +1,27 @@
 using PoeHUD.Models.Enums;
 using System;
+using PoeHUD.Controllers;
 using PoeHUD.Models;
 
 namespace PoeHUD.Poe.RemoteMemoryObjects
 {
     public class IngameState : RemoteMemoryObject
     {
-        public Camera Camera => Cache.Enable ? Cache.Instance.Camera : CameraReal;
+        public Camera Camera => GameController.Instance.Cache.Enable ? GameController.Instance.Cache.Camera : CameraReal;
 
         public Camera CameraReal => GetObject<Camera>(Address + 0x1704 + Offsets.IgsOffsetDelta);
 
-        public IngameData Data => Cache.Enable ? Cache.Instance.Data : DataReal;
+        public IngameData Data => GameController.Instance.Cache.Enable ? GameController.Instance.Cache.Data : DataReal;
         public IngameData DataReal => ReadObject<IngameData>(Address + 0x170 + Offsets.IgsOffset);
 
         public bool InGame => ServerDataReal.IsInGame;
-        public ServerData ServerData => Cache.Enable ? Cache.Instance.ServerData : ServerDataReal;
+        public ServerData ServerData => GameController.Instance.Cache.Enable ? GameController.Instance.Cache.ServerData : ServerDataReal;
 
         public ServerData ServerDataReal => ReadObjectAt<ServerData>(0x178 + Offsets.IgsOffset);
-        public IngameUIElements IngameUi => Cache.Enable ? Cache.Instance.IngameUi : IngameUiReal;
+        public IngameUIElements IngameUi => GameController.Instance.Cache.Enable ? GameController.Instance.Cache.IngameUi : IngameUiReal;
 
         public IngameUIElements IngameUiReal => ReadObjectAt<IngameUIElements>(0x5D0 + Offsets.IgsOffset);
-        public Element UIRoot => Cache.Enable ? Cache.Instance.UIRoot : UIRootReal;
+        public Element UIRoot => GameController.Instance.Cache.Enable ? GameController.Instance.Cache.UIRoot : UIRootReal;
 
         public Element UIRootReal => ReadObjectAt<Element>(0xC80 + Offsets.IgsOffset);
         public Element UIHover => ReadObjectAt<Element>(0xCA8 + Offsets.IgsOffset);
@@ -30,11 +31,11 @@ namespace PoeHUD.Poe.RemoteMemoryObjects
 
         public long EntityLabelMap => M.ReadLong(Address + 0x98, 0xA70);
         public DiagnosticInfoType DiagnosticInfoType => (DiagnosticInfoType)M.ReadInt(Address + 0xD38 + Offsets.IgsOffset);
-        public DiagnosticElement LatencyRectangle => Cache.Enable ? Cache.Instance.LatencyRectangle : LatencyRectangleReal;
+        public DiagnosticElement LatencyRectangle => GameController.Instance.Cache.Enable ? GameController.Instance.Cache.LatencyRectangle : LatencyRectangleReal;
 
         public DiagnosticElement LatencyRectangleReal => GetObjectAt<DiagnosticElement>(0xF68 + Offsets.IgsOffset);
         public DiagnosticElement FrameTimeRectangle => GetObjectAt<DiagnosticElement>(0x13F8 + Offsets.IgsOffset);
-        public DiagnosticElement FPSRectangle => Cache.Enable ? Cache.Instance.FPSRectangle : FPSRectangleReal;
+        public DiagnosticElement FPSRectangle => GameController.Instance.Cache.Enable ? GameController.Instance.Cache.FPSRectangle : FPSRectangleReal;
 
         public DiagnosticElement FPSRectangleReal => GetObjectAt<DiagnosticElement>(0x1640 + Offsets.IgsOffset);
         public float CurLatency => LatencyRectangle.CurrValue;
