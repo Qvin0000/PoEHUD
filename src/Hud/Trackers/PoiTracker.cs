@@ -47,6 +47,24 @@ namespace PoeHUD.Hud.Trackers
             "Metadata/Chests/PerandusChests/PerandusManorLostTreasureChest"
         };
 
+        private static readonly Dictionary<string, string> strongboxes =
+            new Dictionary<string, string>()
+            {
+                {"Metadata/Chests/StrongBoxes/Large","large.png"},
+                {"Metadata/Chests/StrongBoxes/Strongbox","strongbox.png"},
+                {"Metadata/Chests/StrongBoxes/Armory","armory.png"},
+                {"Metadata/Chests/StrongBoxes/Arsenal","blacksmith.png"},
+                {"Metadata/Chests/StrongBoxes/Artisan","artisan.png"},
+                {"Metadata/Chests/StrongBoxes/Jeweller","jeweller.png"},
+                {"Metadata/Chests/StrongBoxes/Cartographer","cartographer.png"},
+                {"Metadata/Chests/StrongBoxes/Ornate","large.png"},
+                {"Metadata/Chests/StrongBoxes/Arcanist","arcanist.png"},
+                {"Metadata/Chests/StrongBoxes/Gemcutter","gemcutter.png"},
+                //TODO: Check path when found this in game
+                {"Metadata/Chests/StrongBoxes/StrongboxDivination","diviner.png"},
+            };
+
+
         public PoiTracker(GameController gameController, Graphics graphics, PoiTrackerSettings settings)
             : base(gameController, graphics, settings)
         { }
@@ -66,6 +84,7 @@ namespace PoeHUD.Hud.Trackers
                 CurrentIcons[entity] = icon;
             }
         }
+
 
         private MapIcon GetMapIcon(EntityWrapper e)
         {
@@ -90,48 +109,21 @@ namespace PoeHUD.Hud.Trackers
 
                 if (e.GetComponent<Chest>().IsStrongbox)
                 {
-                    if (e.Path.Contains("Arcanist"))
+
+                    if (strongboxes.TryGetValue(e.Path, out var texture))
                     {
-                        return new ChestMapIcon(e, new HudTexture("arcanist.png",
+                        return new ChestMapIcon(e, new HudTexture(texture,
                                 e.GetComponent<ObjectMagicProperties>().Rarity), () => Settings.Strongboxes,
                             Settings.StrongboxesIcon);
                     }
-                    if (e.Path.Contains("Divine"))
+
+                    if (e.Path.Contains("Divination"))
                     {
                         return new ChestMapIcon(e, new HudTexture("diviner.png",
                                 e.GetComponent<ObjectMagicProperties>().Rarity), () => Settings.Strongboxes,
                             Settings.StrongboxesIcon);
                     }
-                    if (e.Path.Contains("Armory"))
-                    {
-                        return new ChestMapIcon(e, new HudTexture("armory.png",
-                                e.GetComponent<ObjectMagicProperties>().Rarity), () => Settings.Strongboxes,
-                            Settings.StrongboxesIcon);
-                    }
-                    if (e.Path.Contains("Large") || e.Path.Contains("Ornate"))
-                    {
-                        return new ChestMapIcon(e, new HudTexture("large.png",
-                                e.GetComponent<ObjectMagicProperties>().Rarity), () => Settings.Strongboxes,
-                            Settings.StrongboxesIcon);
-                    }
-                    if (e.Path.Contains("Artisan"))
-                    {
-                        return new ChestMapIcon(e, new HudTexture("artisan.png",
-                                e.GetComponent<ObjectMagicProperties>().Rarity), () => Settings.Strongboxes,
-                            Settings.StrongboxesIcon);
-                    }
-                    if (e.Path.Contains("Blacksm"))
-                    {
-                        return new ChestMapIcon(e, new HudTexture("blacksmith.png",
-                                e.GetComponent<ObjectMagicProperties>().Rarity), () => Settings.Strongboxes,
-                            Settings.StrongboxesIcon);
-                    }
-                    if (e.Path.Contains("Gemcutter"))
-                    {
-                        return new ChestMapIcon(e, new HudTexture("gemcutter.png",
-                                e.GetComponent<ObjectMagicProperties>().Rarity), () => Settings.Strongboxes,
-                            Settings.StrongboxesIcon);
-                    }
+
                     return new ChestMapIcon(e, new HudTexture("strongbox.png",
                             e.GetComponent<ObjectMagicProperties>().Rarity), () => Settings.Strongboxes,
                         Settings.StrongboxesIcon);
