@@ -52,7 +52,7 @@ namespace PoeHUD.Hud.Dev
                 }
                 else
                 {
-                    if (ImGui.Button("Stop##Debuglog"))
+                    if (ImGui.Button("Pause##Debuglog"))
                     {
                         pause = true;
                     }

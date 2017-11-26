@@ -60,7 +60,6 @@ namespace PoeHUD.Hud.Trackers
                 {"Metadata/Chests/StrongBoxes/Ornate","large.png"},
                 {"Metadata/Chests/StrongBoxes/Arcanist","arcanist.png"},
                 {"Metadata/Chests/StrongBoxes/Gemcutter","gemcutter.png"},
-                //TODO: Check path when found this in game
                 {"Metadata/Chests/StrongBoxes/StrongboxDivination","diviner.png"},
             };
 
@@ -116,14 +115,6 @@ namespace PoeHUD.Hud.Trackers
                                 e.GetComponent<ObjectMagicProperties>().Rarity), () => Settings.Strongboxes,
                             Settings.StrongboxesIcon);
                     }
-
-                    if (e.Path.Contains("Divination"))
-                    {
-                        return new ChestMapIcon(e, new HudTexture("diviner.png",
-                                e.GetComponent<ObjectMagicProperties>().Rarity), () => Settings.Strongboxes,
-                            Settings.StrongboxesIcon);
-                    }
-
                     return new ChestMapIcon(e, new HudTexture("strongbox.png",
                             e.GetComponent<ObjectMagicProperties>().Rarity), () => Settings.Strongboxes,
                         Settings.StrongboxesIcon);

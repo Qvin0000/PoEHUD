@@ -83,9 +83,9 @@ namespace PoeHUD.Hud.Dev
                     ImGui.Text($"{coroutines[i].Priority}"); ImGui.NextColumn();
                     if (coroutines[i].DoWork)
                     {
-                        if (ImGui.Button($"Stop##{coroutines[i].Name}"))
+                        if (ImGui.Button($"Pause##{coroutines[i].Name}"))
                         {
-                            coroutines[i].Stop();
+                            coroutines[i].Pause();
                         }
                     }
                     else

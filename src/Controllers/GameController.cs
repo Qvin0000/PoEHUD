@@ -6,6 +6,7 @@ using PoeHUD.Poe.RemoteMemoryObjects;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
+using PoeHUD.DebugPlug;
 using PoeHUD.Framework.Helpers;
 using PoeHUD.Hud.Performance;
 
@@ -175,7 +176,11 @@ namespace PoeHUD.Controllers
                     if (CoroutineRunner.IsRunning)
                     {
                         fpsCoroutine++;
-                        CoroutineRunner.Update();
+                        try
+                        {
+                            CoroutineRunner.Update();
+                        }
+                        catch (Exception e) { DebugPlugin.LogMsg($"{e.Message}", 1); }
                     }
                 }
 

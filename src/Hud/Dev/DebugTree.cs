@@ -9,12 +9,10 @@ using PoeHUD.Controllers;
 using PoeHUD.DebugPlug;
 using PoeHUD.Framework;
 using PoeHUD.Framework.Helpers;
-using PoeHUD.Hud.Settings;
 using PoeHUD.Hud.UI;
 using PoeHUD.Models;
 using PoeHUD.Models.Interfaces;
 using PoeHUD.Poe;
-using PoeHUD.Poe.Components;
 using SharpDX;
 using Vector2 = System.Numerics.Vector2;
 using Vector4 = System.Numerics.Vector4;
@@ -44,9 +42,6 @@ namespace PoeHUD.Hud.Dev
             objectForDebug.Add(("GameController.Game", gameController.Game));
             objectForDebug.Add(("IngameUi", gameController.Game.IngameState.IngameUi));
             objectForDebug.Add(("UIRoot", gameController.Game.IngameState.UIRoot));
-
-
-
         }
 
         private List<RectangleF> rectForDebug = new List<RectangleF>();
@@ -63,21 +58,18 @@ namespace PoeHUD.Hud.Dev
             objectForDebug.Add((name, o));
 
         }
-
-       
         public override void Render()
         {
             if (_settings.ShowWindow)
             {
-
-
                 uniqueIndex = 0;
                 settingsShowWindow = _settings.ShowWindow;
                 if (rectForDebug.Count == 0)
-                    coroutineRndColor.Stop();
+                    coroutineRndColor.Pause();
                 else
                     coroutineRndColor.Resume();
-                
+
+
                 foreach (var rectangleF in rectForDebug)
                 {
                     Graphics.DrawFrame(rectangleF, 2, clr);
@@ -128,7 +120,7 @@ namespace PoeHUD.Hud.Dev
             }
             else
             {
-                coroutineRndColor.Stop();
+                coroutineRndColor.Pause();
             }
         }
 

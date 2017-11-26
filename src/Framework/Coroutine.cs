@@ -3,7 +3,6 @@ using System.Collections;
 using System.Security.Cryptography;
 using PoeHUD.Controllers;
 
-
 namespace PoeHUD.Framework
 {
     public class Coroutine
@@ -75,7 +74,7 @@ namespace PoeHUD.Framework
         public IEnumerator GetEnumerator() => _enumerator;
         public void UpdateTicks(int tick) => Ticks = tick;
         public void Resume() => DoWork = true;
-        public void Stop(bool force = false)
+        public void Pause(bool force = false)
         {
             if (Priority == CoroutinePriority.Critical && !force) return;
             DoWork = false;
@@ -108,11 +107,11 @@ namespace PoeHUD.Framework
         public WaitRender(long howManyRenderCountWait = 1)
         {
 
-            Current = _WaitRender(howManyRenderCountWait);
+            Current = WR(howManyRenderCountWait);
 
         }
 
-        IEnumerator _WaitRender(long howManyRenderCountWait)
+        IEnumerator WR(long howManyRenderCountWait)
         {
             var prevRenderCount = GameController.Instance.RenderCount;
             howManyRenderCountWait += GameController.Instance.RenderCount;

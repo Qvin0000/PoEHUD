@@ -69,17 +69,14 @@ namespace PoeHUD.Hud.UI
 
             //TODO: Need fix input
 
-
             KeyboardHook.KeyDown += OnKeyboardHookOnKeyDown;
             KeyboardHook.KeyUp += OnKeyboardHookOnKeyUp;
 
             MouseHook.MouseWheel += OnMouseHookOnMouseWheel;
-            if (_form != null)
-            {
-                io.DisplaySize = new ImVec2(_form.Width, _form.Height);
-                io.DisplayFramebufferScale = new ImVec2(_form.Width * 1.0f / _form.Height);
+            io.DisplaySize = new ImVec2(form.ClientSize.Width, form.ClientSize.Height);
+            io.DisplayFramebufferScale = new ImVec2(form.ClientSize.Width * 1.0f / form.ClientSize.Height);
 
-            }
+
             io.DeltaTime = 1f / 60f;
 
             renderLocker.Reset();
@@ -455,7 +452,7 @@ namespace PoeHUD.Hud.UI
             var io = ImGui.GetIO();
 
             var texDataAsRgba32 = io.FontAtlas.GetTexDataAsRGBA32();
-            io.DisplaySize = new ImVec2(_form.Width, _form.Height);
+            io.DisplaySize = new ImVec2(_form.ClientSize.Width, _form.ClientSize.Height);
             var t = new Texture(device, texDataAsRgba32.Width, texDataAsRgba32.Height, 1, Usage.Dynamic,
                 Format.A8R8G8B8, Pool.Default);
             var rect = t.LockRectangle(0, LockFlags.None);

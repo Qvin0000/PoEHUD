@@ -62,7 +62,7 @@ namespace PoeHUD.Framework
         public void StopCoroutines(IEnumerable<Coroutine> coroutines)
         {
             foreach (var coroutine in coroutines)
-                coroutine.Stop();
+                coroutine.Pause();
         }
 
         public void ResumeCoroutines(IEnumerable<Coroutine> coroutines)
