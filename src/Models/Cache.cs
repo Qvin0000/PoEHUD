@@ -1,8 +1,11 @@
 ﻿using System.Collections.Generic;
 using PoeHUD.Controllers;
+using PoeHUD.Framework;
+using PoeHUD.Framework.Helpers;
 using PoeHUD.Poe;
 using PoeHUD.Poe.Components;
 using PoeHUD.Poe.RemoteMemoryObjects;
+using SharpDX;
 
 namespace PoeHUD.Models
 {
@@ -19,6 +22,7 @@ namespace PoeHUD.Models
         private DiagnosticElement _latencyRectangle;
         private Entity _localPlayer;
         private Actor _localPlayerActor;
+        private RectangleF _window;
         private static Cache _instance;
 
         public IngameState IngameState => _ingameState ?? (_ingameState = _gameController.Game.IngameStateReal);
@@ -45,14 +49,21 @@ namespace PoeHUD.Models
         public Actor LocalPlayer_Actor => _localPlayerActor ?? (_localPlayerActor =
                                               _gameController.Game.IngameState.Data.LocalPlayerReal.GetComponent<Actor>());
 
+        public RectangleF Window => _window.IsEmpty ? (_window = _gameController.Window.GetWindowRectangleReal()) : _window;
 
 
         public bool Enable { get; set; } = true;
 
         public Cache()
         {
+            _window = RectangleF.Empty;
             _gameController = GameController.Instance;
             _gameController.Area.OnAreaChange += controller => { UpdateCache(); };
+            (new Coroutine(() =>
+            {
+                _window = _gameController.Window.GetWindowRectangleReal();
+            }, 100, nameof(Cache), "UpdateCache")
+            { Priority = CoroutinePriority.Critical }).AutoRestart().Run();
         }
 
         public static Dictionary<string, int> ForDevolopDeleteThis = new Dictionary<string, int>();
@@ -68,6 +79,12 @@ namespace PoeHUD.Models
             _latencyRectangle = _gameController.Game.IngameState.LatencyRectangleReal;
             _localPlayer = _gameController.Game.IngameState.Data.LocalPlayerReal;
             _localPlayerActor = _gameController.Game.IngameState.Data.LocalPlayerReal.GetComponent<Actor>();
+            _window = _gameController.Window.GetWindowRectangleReal();
+        }
+
+        public void ForceUpdateWindowCache()
+        {
+            _window = _gameController.Window.GetWindowRectangleReal();
         }
     }
 }

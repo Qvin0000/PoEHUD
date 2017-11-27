@@ -314,11 +314,13 @@ namespace PoeHUD.Hud.UI
             {
                 presentParameters.BackBufferWidth = width;
                 presentParameters.BackBufferHeight = height;
+                GameController.Instance.Cache.ForceUpdateWindowCache();
                 var io = ImGui.GetIO();
                 io.DisplaySize = new System.Numerics.Vector2(width, height);
                 io.DisplayFramebufferScale = new System.Numerics.Vector2(width * 1.0f / height);
                 resized = true;
             }
+
         }
 
         public Size2 DrawText(string text, int height, Vector2 position, Color color, FontDrawFlags align = FontDrawFlags.Left)
