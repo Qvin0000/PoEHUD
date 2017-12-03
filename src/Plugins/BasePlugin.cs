@@ -29,20 +29,27 @@ namespace PoeHUD.Plugins
         protected Action eLoadSettings = delegate { };
 
         public virtual bool bAllowRender => true;
-
+        private bool _initialized = false;
         #region ExternalInvokeMethods
         public void iInitialise()
         {
-            try { Initialise(); }
+            //If plugin off dont init
+            if (!bAllowRender) return;
+            try
+            {
+                Initialise();
+                _initialized = true;
+            }
             catch (Exception e)
             {
                 HandlePluginError("Initialise", e);
-            }
+            }   
         }
         public void iRender()
         {
-             if (!bAllowRender) return;
-
+            if (!bAllowRender) return;
+            //init if load disabled plugin
+            if(!_initialized) iInitialise();
             try { Render(); }
             catch (Exception e)
             {
@@ -66,7 +73,7 @@ namespace PoeHUD.Plugins
             }
         }
         public void iOnClose()
-        {
+        { 
             try { OnClose(); }
             catch (Exception e)
             {
@@ -126,14 +133,14 @@ namespace PoeHUD.Plugins
         }
         public static void LogError(object message, float displayTime)
         {
-            if (message == null)
+            if(message == null)
                 LogError("null", displayTime);
             else
                 LogError(message.ToString(), displayTime);
         }
         public static void LogError(string message, float displayTime)
         {
-            if (API == null)
+            if(API == null)
                 return;
 
             API.LogError(message, displayTime);
@@ -166,7 +173,7 @@ namespace PoeHUD.Plugins
         {
             API = api;
             PluginDirectory = pluginData.PluginDir;
-            LocalPluginDirectory = PluginDirectory.Substring(PluginDirectory.IndexOf(@"\plugins\") + 1);
+            LocalPluginDirectory = PluginDirectory.Substring(PluginDirectory.IndexOf(@"\plugins\") + 1); 
         }
 
         public void Destroy()

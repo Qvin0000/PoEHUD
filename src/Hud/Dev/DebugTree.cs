@@ -15,7 +15,7 @@ using PoeHUD.Models.Interfaces;
 using PoeHUD.Poe;
 using SharpDX;
 using Vector2 = System.Numerics.Vector2;
-using Vector4 = System.Numerics.Vector4;
+using Vector4 = System.Numerics.Vector4; 
 namespace PoeHUD.Hud.Dev
 {
     public class DebugTree : Plugin<DebugTreeSettings>
@@ -34,16 +34,16 @@ namespace PoeHUD.Hud.Dev
             _gameController = gameController;
             _graphics = graphics;
             _settings = settings;
-            rnd = new Random((int)_gameController.sw.ElapsedTicks);
-            coroutineRndColor =
-            (new Coroutine(() => { clr = new Color(rnd.Next(255), rnd.Next(255), rnd.Next(255), 255); }, 200,
-                nameof(DebugTree), "Random Color")).Run();
-            objectForDebug.Add(("GameController", gameController));
-            objectForDebug.Add(("GameController.Game", gameController.Game));
-            objectForDebug.Add(("IngameUi", gameController.Game.IngameState.IngameUi));
-            objectForDebug.Add(("UIRoot", gameController.Game.IngameState.UIRoot));
+            rnd = new Random((int) _gameController.MainTimer.ElapsedTicks);
+             coroutineRndColor =
+             (new Coroutine(() => { clr = new Color(rnd.Next(255), rnd.Next(255), rnd.Next(255), 255); }, new WaitTime(200), 
+                 nameof(DebugTree), "Random Color")).Run();
+           objectForDebug.Add(("GameController", gameController));
+           objectForDebug.Add(("GameController.Game", gameController.Game));
+           objectForDebug.Add(("IngameUi",gameController.Game.IngameState.IngameUi));
+           objectForDebug.Add(("UIRoot",gameController.Game.IngameState.UIRoot));
         }
-
+     
         private List<RectangleF> rectForDebug = new List<RectangleF>();
         Color clr = Color.Pink;
         bool settingsShowWindow;
@@ -56,12 +56,12 @@ namespace PoeHUD.Hud.Dev
             if (objectForDebug.Any(x => x.name == name))
                 return;
             objectForDebug.Add((name, o));
-
+            
         }
         public override void Render()
         {
             if (_settings.ShowWindow)
-            {
+            {  
                 uniqueIndex = 0;
                 settingsShowWindow = _settings.ShowWindow;
                 if (rectForDebug.Count == 0)
@@ -69,12 +69,12 @@ namespace PoeHUD.Hud.Dev
                 else
                     coroutineRndColor.Resume();
 
-
+                
                 foreach (var rectangleF in rectForDebug)
                 {
                     Graphics.DrawFrame(rectangleF, 2, clr);
                 }
-
+                
                 ImGui.SetNextWindowPos(new Vector2(100, 100), SetCondition.Appearing);
                 ImGui.SetNextWindowSize(new Vector2(600, 600), SetCondition.Appearing);
 
@@ -93,19 +93,19 @@ namespace PoeHUD.Hud.Dev
                     var formattable = $"Hover: {uihover.ToString()} {uihover.Address}";
                     if (objectForDebug.Any(x => x.name.Contains(formattable)))
                     {
-                        var findIndex = objectForDebug.FindIndex(x => x.name.Contains(formattable));
+                        var findIndex = objectForDebug.FindIndex(x=>x.name.Contains(formattable));
                         objectForDebug[findIndex] = (formattable + "^", uihover);
                     }
                     else
                     {
-
-                        objectForDebug.Add((formattable, uihover));
+                                        
+                        objectForDebug.Add((formattable,uihover));
                     }
-
-
+                    
+     
                 }
-
-
+                
+               
                 for (int i = 0; i < objectForDebug.Count; i++)
                 {
                     if (ImGui.TreeNode($"{objectForDebug[i].name}"))
@@ -127,31 +127,31 @@ namespace PoeHUD.Hud.Dev
         private void DebugForImgui(object obj)
         {
             var flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
-
+            
             try
             {
-                if (obj is IEntity)
+                if (obj is IEntity )
                 {
                     Dictionary<string, long> comp = new Dictionary<string, long>();
                     object ro;
                     if (obj is EntityWrapper)
                     {
-                        ro = (EntityWrapper)obj;
-                        comp = ((EntityWrapper)obj).InternalEntity.GetComponents();
+                        ro = (EntityWrapper) obj;
+                        comp = ((EntityWrapper) obj).InternalEntity.GetComponents();
                     }
                     else
                     {
-                        ro = (Entity)obj;
-                        comp = ((Entity)obj).GetComponents();
+                         ro = (Entity) obj ;
+                        comp = ((Entity) obj).GetComponents();
                     }
                     if (ImGui.TreeNode($"Components {comp.Count} ##{ro.GetHashCode()}"))
                     {
                         MethodInfo method;
-                        if (ro is EntityWrapper)
+                        if(ro is EntityWrapper)
                             method = typeof(EntityWrapper).GetMethod("GetComponent");
-                        else
-                            method = typeof(Entity).GetMethod("GetComponent");
-
+                            else
+                        method = typeof(Entity).GetMethod("GetComponent");
+                        
 
                         foreach (var c in comp)
                         {
@@ -176,11 +176,11 @@ namespace PoeHUD.Hud.Dev
                                     var formattableString = $"{obj.ToString()}->{c.Key}";
                                     if (objectForDebug.Any(x => x.name.Contains(formattableString)))
                                     {
-                                        var findIndex = objectForDebug.FindIndex(x => x.name.Contains(formattableString));
+                                        var findIndex = objectForDebug.FindIndex(x=>x.name.Contains(formattableString));
                                         objectForDebug[findIndex] = (formattableString + "^", g);
                                     }
                                     else
-                                        objectForDebug.Add((formattableString, g));
+                                    objectForDebug.Add((formattableString, g));
                                 }
                                 DebugForImgui(g);
                                 ImGui.TreePop();
@@ -189,27 +189,27 @@ namespace PoeHUD.Hud.Dev
                         ImGui.TreePop();
                     }
                 }
-
-
+                
+                
                 if (obj is Element)
                 {
                     ImGui.SameLine();
                     uniqueIndex++;
                     if (ImGui.Button($"Draw this##{uniqueIndex}"))
                     {
-                        var el = (Element)obj;
+                        var el = (Element) obj;
 
                         rectForDebug.Add(el.GetClientRect());
                     }
                     ImGui.SameLine();
-
+                    
                     uniqueIndex++;
                     if (ImGui.Button($"Clear##from draw this{uniqueIndex}"))
                     {
                         rectForDebug.Clear();
                     }
                 }
-
+                
                 var oProp = obj.GetType().GetProperties(flags).Where(x => x.GetIndexParameters().Length == 0);
                 DebugImGuiFields(obj);
                 oProp = oProp.OrderBy(x => x.Name).ToList();
@@ -258,16 +258,16 @@ namespace PoeHUD.Hud.Dev
                                     var formattable = $"{label}->{o}";
                                     if (objectForDebug.Any(x => x.name.Contains(formattable)))
                                     {
-                                        var findIndex = objectForDebug.FindIndex(x => x.name.Contains(formattable));
+                                        var findIndex = objectForDebug.FindIndex(x=>x.name.Contains(formattable));
                                         objectForDebug[findIndex] = (formattable + "^", o);
                                     }
                                     else
                                     {
-
+                                        
                                         objectForDebug.Add((formattable, o));
                                     }
                                 }
-
+                            
 
                                 DebugForImgui(o);
 
@@ -280,7 +280,7 @@ namespace PoeHUD.Hud.Dev
                                 new System.Numerics.Vector4(0.486f, 0.988f, 0, 1));
                             var i = 0;
 
-                            var enumerable = (IEnumerable)o;
+                            var enumerable = (IEnumerable) o;
                             var items = enumerable as IList<object> ?? enumerable.Cast<object>().ToList();
                             uniqueIndex++;
                             if (ImGui.Button($"Draw Childs##{uniqueIndex}"))
@@ -288,7 +288,7 @@ namespace PoeHUD.Hud.Dev
                                 var tempi = 0;
                                 foreach (var item in items)
                                 {
-                                    var el = (Element)item;
+                                    var el = (Element) item;
 
                                     rectForDebug.Add(el.GetClientRect());
                                     tempi++;
@@ -305,7 +305,7 @@ namespace PoeHUD.Hud.Dev
                             uniqueIndex++;
                             if (ImGui.Button($"Draw Childs for Childs Only Visible##{uniqueIndex}"))
                             {
-                                DrawChilds(items, true);
+                                DrawChilds(items,true);
                             }
                             ImGui.SameLine();
                             uniqueIndex++;
@@ -347,9 +347,9 @@ namespace PoeHUD.Hud.Dev
             {
 
                 var tempi = 0;
-                foreach (var item in (IEnumerable)obj)
+                foreach (var item in (IEnumerable) obj)
                 {
-                    var el = (Element)item;
+                    var el = (Element) item;
 
                     if (OnlyVisible)
                     {
@@ -369,7 +369,7 @@ namespace PoeHUD.Hud.Dev
             {
                 if (obj is Element)
                 {
-                    var el = (Element)obj;
+                    var el = (Element) obj;
 
                     rectForDebug.Add(el.GetClientRect());
                 }
@@ -377,21 +377,20 @@ namespace PoeHUD.Hud.Dev
 
         }
 
+       
 
-
-        void DebugImGuiFields(object obj)
-        {
-            var flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
-            var fields = obj.GetType().GetFields(flags);
-
-            foreach (var fieldInfo in fields)
-            {
-                {
-                    ImGui.PushStyleColor(ColorTarget.Text, new Vector4(0.529f, 0.808f, 0.922f, 1));
-                    ImGui.Text($"{fieldInfo.Name} -=> {fieldInfo.GetValue(obj)}");
-                    ImGui.PopStyleColor();
-                }
-            }
-        }
+        void DebugImGuiFields(object obj) 
+        { 
+            var flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance; 
+            var fields = obj.GetType().GetFields(flags); 
+ 
+            foreach (var fieldInfo in fields){ 
+                { 
+                    ImGui.PushStyleColor(ColorTarget.Text,new Vector4(0.529f, 0.808f, 0.922f,1)); 
+                    ImGui.Text($"{fieldInfo.Name} -=> {fieldInfo.GetValue(obj)}"); 
+                    ImGui.PopStyleColor(); 
+                } 
+            } 
+        } 
     }
 }

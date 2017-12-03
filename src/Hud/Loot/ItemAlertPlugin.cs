@@ -22,6 +22,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
 
+
 namespace PoeHUD.Hud.Loot
 {
     public class ItemAlertPlugin : SizedPluginWithMapIcons<ItemAlertSettings>
@@ -34,6 +35,7 @@ namespace PoeHUD.Hud.Loot
         private PoeFilterVisitor visitor;
         public static bool holdKey;
         private readonly SettingsHub settingsHub;
+
 
         public ItemAlertPlugin(GameController gameController, Graphics graphics, ItemAlertSettings settings, SettingsHub settingsHub)
             : base(gameController, graphics, settings)
@@ -120,6 +122,7 @@ namespace PoeHUD.Hud.Loot
                 if (Settings.BorderSettings.Enable)
                 {
                     Dictionary<EntityWrapper, AlertDrawStyle> tempCopy = new Dictionary<EntityWrapper, AlertDrawStyle>(currentAlerts);
+                   
                     var keyValuePairs = tempCopy.AsParallel().Where(x => x.Key != null && x.Key.Address != 0 && x.Key.IsValid).ToList();
                     foreach (var kv in keyValuePairs)
                     {
@@ -129,10 +132,41 @@ namespace PoeHUD.Hud.Loot
                         }
                     }
                 }
-
                 foreach (KeyValuePair<EntityWrapper, AlertDrawStyle> kv in currentAlerts.Where(x => x.Key != null && x.Key.Address != 0 && x.Key.IsValid))
-                {
-                    string text = GetItemName(kv);
+                {  
+                    //
+                    //                       _oo0oo_
+                    //                      o8888888o
+                    //                      88" . "88
+                    //                      (| -_- |)
+                    //                      0\  =  /0
+                    //                    ___/`---'\___
+                    //                  .' \\|     |// '.
+                    //                 / \\|||  :  |||// \
+                    //                / _||||| -:- |||||- \
+                    //               |   | \\\  -  /// |   |
+                    //               | \_|  ''\---/''  |_/ |
+                    //               \  .-\__  '-'  ___/-. /
+                    //             ___'. .'  /--.--\  `. .'___
+                    //          ."" '<  `.___\_<|>_/___.' >' "".
+                    //         | | :  `- \`.;`\ _ /`;.`/ - ` : | |
+                    //         \  \ `_.   \_ __\ /__ _/   .-` /  /
+                    //     =====`-.____`.___ \_____/___.-`___.-'=====
+                    //                       `=---='
+                    //
+                    //
+                    //     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                    //feature! until not be fixed offsets
+                    string text = "";
+                    if (true)
+                    {
+                        text = kv.Value.Text; 
+                    }
+                    else
+                    {
+                        text = GetItemName(kv);
+                    }
+                    
 
                     if (text == null)
                     {
@@ -146,72 +180,20 @@ namespace PoeHUD.Hud.Loot
                     }
                     else
                     {
-                        if (Settings.ShowText)
+                        if (Settings.ShowText && (!Settings.HideOthers || entityLabel.CanPickUp || entityLabel.MaxTimeForPickUp.TotalSeconds == 0))
                         {
-                            if (Settings.HideOthers)
-                            {
-                                if (entityLabel.CanPickUp || entityLabel.MaxTimeForPickUp.TotalSeconds == 0)
-                                {
-                                    position = DrawText(playerPos, position, BOTTOM_MARGIN, kv, text);
-                                }
-                            }
-                            else
-                            {
-                                if (entityLabel.CanPickUp || entityLabel.MaxTimeForPickUp.TotalSeconds == 0)
-                                {
-                                    position = DrawText(playerPos, position, BOTTOM_MARGIN, kv, text);
-                                }
-                                else
-                                {
-                                    // get current values
-                                    Color TextColor = kv.Value.TextColor;
-                                    Color BorderColor = kv.Value.BorderColor;
-                                    Color BackgroundColor = kv.Value.BackgroundColor;
-
-                                    if (Settings.DimOtherByPercentToggle)
-                                    {
-                                        // edit values to new ones
-                                        double ReduceByPercent = (double)Settings.DimOtherByPercent / 100;
-
-                                        TextColor = ReduceNumbers(TextColor, ReduceByPercent);
-                                        BorderColor = ReduceNumbers(BorderColor, ReduceByPercent);
-                                        BackgroundColor = ReduceNumbers(BackgroundColor, ReduceByPercent);
-
-                                        // backgrounds with low alpha start to look a little strange when dark so im adding an alpha threshold
-                                        if (BackgroundColor.A < 210)
-                                            BackgroundColor.A = 210;
-                                    }
-
-                                    // Complete new KeyValuePair with new stuff
-                                    AlertDrawStyle ModifiedDrawStyle = new AlertDrawStyle(text, TextColor, kv.Value.BorderWidth, BorderColor, BackgroundColor, kv.Value.IconIndex);
-                                    KeyValuePair<EntityWrapper, AlertDrawStyle> NewKV = new KeyValuePair<EntityWrapper, AlertDrawStyle>(kv.Key, ModifiedDrawStyle);
-
-                                    position = DrawText(playerPos, position, BOTTOM_MARGIN, NewKV, text);
-                                }
-                            }
+                            position = DrawText(playerPos, position, BOTTOM_MARGIN, kv, text);
                         }
                     }
                 }
                 Size = new Size2F(0, position.Y); //bug absent width
-
+              
                 if (shouldUpdate)
                 {
                     currentLabels = GameController.Game.IngameState.IngameUi.ItemsOnGroundLabels
                         .GroupBy(y => y.ItemOnGround.Address).ToDictionary(y => y.Key, y => y.First());
                 }
             }
-        }
-
-        private Color ReduceNumbers(Color oldColor, double percent)
-        {
-            Color newColor = oldColor;
-
-            newColor.R = (byte)((double)oldColor.R - ((double)oldColor.R * percent));
-            newColor.G = (byte)((double)oldColor.G - ((double)oldColor.G * percent));
-            newColor.B = (byte)((double)oldColor.B - ((double)oldColor.B * percent));
-            newColor.A = (byte)((double)oldColor.A - (((double)oldColor.A / 10) * percent));
-
-            return newColor;
         }
 
         private Vector2 DrawText(Vector2 playerPos, Vector2 position, int BOTTOM_MARGIN,
@@ -383,7 +365,7 @@ namespace PoeHUD.Hud.Loot
             return shouldUpdate;
         }
 
-        private Vector2 DrawItem(AlertDrawStyle drawStyle, Vector2 delta, Vector2 position, Vector2 padding, string text)
+        private Vector2     DrawItem(AlertDrawStyle drawStyle, Vector2 delta, Vector2 position, Vector2 padding, string text)
         {
             padding.X -= drawStyle.BorderWidth;
             padding.Y -= drawStyle.BorderWidth;

@@ -7,8 +7,11 @@ using PoeHUD.Hud.Settings;
 using PoeHUD.Hud.UI;
 using SharpDX;
 using System;
+using System.Collections;
 using System.Linq;
 using System.Windows.Forms;
+using System.Collections.Generic;
+using System.Numerics;
 using System.Reflection;
 using ImGuiNET;
 using Vector2 = SharpDX.Vector2;
@@ -27,8 +30,8 @@ namespace PoeHUD.Hud.Menu
         // Use this event if you want your mouse clicks to be handled by poehud and does not passed to the game {Stridemann}
         public static Func<MouseEventID, Vector2, bool> ExternalMouseClick = delegate { return false; };
         // Use this event if you want your mouse clicks to be handled by poehud and passed to the game {Stridemann}
-        public static Action<MouseEventID, Vector2> eMouseEvent = delegate { };
-
+        public static Action<MouseEventID, Vector2> eMouseEvent = delegate {  };
+    
 
         public MenuPlugin(GameController gameController, Graphics graphics, SettingsHub settingsHub)
             : base(gameController, graphics, settingsHub.MenuSettings)
@@ -48,25 +51,25 @@ namespace PoeHUD.Hud.Menu
             ImGui.BeginMainMenuBar();
             if (ImGui.BeginMenu("Settings"))
             {
-                ImGui.Text("Trying parse old menu, working checkboxs and sliders");
-                foreach (var setting in SettingsHub.SettingsBases)
-                {
-                    var split = setting.ToString().Split('.');
-                    if (ImGui.CollapsingHeader(split.Last(), TreeNodeFlags.Framed))
-                    {
-
-                        MenuParser(setting);
-                    }
-                }
+               ImGui.Text("Trying parse old menu, working checkboxs and sliders");
+                 foreach (var setting in SettingsHub.SettingsBases)
+                 {
+                     var split = setting.ToString().Split('.');
+                     if (ImGui.CollapsingHeader(split.Last(),TreeNodeFlags.Framed))
+                     {
+                         
+                         MenuParser(setting);
+                     }
+                 }
                 ImGui.EndMenu();
             }
             if (ImGui.BeginMenu("For dev"))
             {
-                if (ImGui.MenuItem("Debug Tree", null, settingsHub.DebugTreeSettings.ShowWindow, true))
+                if (ImGui.MenuItem("Debug Tree",null,settingsHub.DebugTreeSettings.ShowWindow,true))
                 {
                     settingsHub.DebugTreeSettings.ShowWindow = !settingsHub.DebugTreeSettings.ShowWindow;
                 }
-                if (ImGui.MenuItem("Debug Information", null, settingsHub.DebugInformationSettings.ShowWindow, true))
+                if (ImGui.MenuItem("Debug Information",null,settingsHub.DebugInformationSettings.ShowWindow,true))
                 {
                     settingsHub.DebugInformationSettings.ShowWindow = !settingsHub.DebugInformationSettings.ShowWindow;
                 }
@@ -81,55 +84,55 @@ namespace PoeHUD.Hud.Menu
 
         void MenuParser(object obj)
         {
-            var flags = BindingFlags.Public | BindingFlags.Instance;
+            var flags = BindingFlags.Public |  BindingFlags.Instance;
             var oProp = obj.GetType().GetProperties(flags).Where(x => x.GetIndexParameters().Length == 0);
             foreach (var propertyInfo in oProp)
-            {
-                var o = Convert.ChangeType(propertyInfo.GetValue(obj, null), propertyInfo.PropertyType);
-                if (propertyInfo.PropertyType == typeof(ToggleNode))
                 {
-                    var toggleNode = ((ToggleNode)o);
-                    if (toggleNode == null) continue;
-                    var toggleNodeValue = toggleNode.Value;
-                    ImGui.Text($"{propertyInfo.Name}");
-                    ImGui.SameLine();
-                    ImGui.Checkbox(
-                        $"##{propertyInfo.ReflectedType}{propertyInfo.Name}{toggleNode.GetHashCode()}",
-                        ref toggleNodeValue);
-                    toggleNode.Value = toggleNodeValue;
+                    var o = Convert.ChangeType(propertyInfo.GetValue(obj, null), propertyInfo.PropertyType);
+                    if (propertyInfo.PropertyType == typeof(ToggleNode))
+                    {
+                        var toggleNode = ((ToggleNode)o);
+                        if (toggleNode == null) continue;
+                        var toggleNodeValue = toggleNode.Value;
+                        ImGui.Text($"{propertyInfo.Name}");
+                        ImGui.SameLine();
+                        ImGui.Checkbox(
+                            $"##{propertyInfo.ReflectedType}{propertyInfo.Name}{toggleNode.GetHashCode()}",
+                            ref toggleNodeValue);
+                        toggleNode.Value = toggleNodeValue;
+                    }
+                    else if (propertyInfo.PropertyType == typeof(RangeNode<int>))
+                    {
+                        var rangeNode = ((RangeNode<int>)o);
+                        if (rangeNode == null) continue;
+                        var rangeNodeValue = rangeNode.Value;
+                        ImGui.Text($"{propertyInfo.Name}"); 
+                        ImGui.SameLine();
+                        ImGui.SliderInt($"##{propertyInfo.ReflectedType}{propertyInfo.Name}{rangeNode.GetHashCode()}", ref rangeNodeValue, rangeNode.Min, rangeNode.Max, null);
+                        rangeNode.Value = rangeNodeValue;
+                    }
+                    else if (propertyInfo.PropertyType == typeof(ColorNode))
+                    {
+                        var colorNode = (ColorNode) o;
+                        if(colorNode==null) continue;
+                        var colorNodeValue = colorNode.Value;
+                        ImGui.Text($"{propertyInfo.Name}");
+                        ImGui.SameLine();
+                        //TODO: Fix color
+                        ImGui.Text($"###Just show ///Wrong color $$$Need fix");
+                        Vector4 color4 = new Vector4(colorNodeValue.R,colorNodeValue.G,colorNodeValue.B,colorNodeValue.A);
+                        ImGui.ColorEdit4($"##{propertyInfo.ReflectedType}{propertyInfo.Name}{colorNode.GetHashCode()}",ref color4, true);
+                    }
+                    else
+                    {
+                        ImGui.Text($"{propertyInfo.Name} : {o} " +
+                                   $"/ PropertyType: {propertyInfo.PropertyType} ");
+                    }
+                   
+                  
                 }
-                else if (propertyInfo.PropertyType == typeof(RangeNode<int>))
-                {
-                    var rangeNode = ((RangeNode<int>)o);
-                    if (rangeNode == null) continue;
-                    var rangeNodeValue = rangeNode.Value;
-                    ImGui.Text($"{propertyInfo.Name}");
-                    ImGui.SameLine();
-                    ImGui.SliderInt($"##{propertyInfo.ReflectedType}{propertyInfo.Name}{rangeNode.GetHashCode()}", ref rangeNodeValue, rangeNode.Min, rangeNode.Max, null);
-                    rangeNode.Value = rangeNodeValue;
-                }
-                else if (propertyInfo.PropertyType == typeof(ColorNode))
-                {
-                    var colorNode = (ColorNode)o;
-                    if (colorNode == null) continue;
-                    var colorNodeValue = colorNode.Value;
-                    ImGui.Text($"{propertyInfo.Name}");
-                    ImGui.SameLine();
-                    //TODO: Fix color
-                    ImGui.Text($"###Just show ///Wrong color $$$Need fix");
-                    Vector4 color4 = new Vector4(colorNodeValue.R, colorNodeValue.G, colorNodeValue.B, colorNodeValue.A);
-                    ImGui.ColorEdit4($"##{propertyInfo.ReflectedType}{propertyInfo.Name}{colorNode.GetHashCode()}", ref color4, true);
-                }
-                else
-                {
-                    ImGui.Text($"{propertyInfo.Name} : {o} " +
-                               $"/ PropertyType: {propertyInfo.PropertyType} ");
-                }
-
-
-            }
         }
-
+        
 
         public override void Dispose()
         {
@@ -241,6 +244,10 @@ namespace PoeHUD.Hud.Menu
             AddChild(playersMenu, "Print health text", healthBarPlugin.Players.ShowHealthText);
             AddChild(playersMenu, "Width", healthBarPlugin.Players.Width);
             AddChild(playersMenu, "Height", healthBarPlugin.Players.Height);
+            AddChild(playersMenu, "New Style", healthBarPlugin.NewStyle);
+            AddChild(playersMenu, "Show Mana", healthBarPlugin.ShowMana);
+            AddChild(playersMenu, "X", healthBarPlugin.X);
+            AddChild(playersMenu, "Y", healthBarPlugin.Y);
             MenuItem playerDPSMenu = AddChild(playersMenu, "Floating combat text", healthBarPlugin.Players.ShowFloatingCombatDamage);
             AddChild(playerDPSMenu, "Text size", healthBarPlugin.Players.FloatingCombatTextSize);
             AddChild(playerDPSMenu, "Damage Color", healthBarPlugin.Players.FloatingCombatDamageColor);

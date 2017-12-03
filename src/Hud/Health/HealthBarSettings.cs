@@ -9,6 +9,7 @@ namespace PoeHUD.Hud.Health
             Enable = false;
             ShowInTown = false;
             ShowES = true;
+            ShowMana = true;
             ShowIncrements = true;
             ShowEnemies = true;
             Players = new UnitSettings(0x008000ff, 0);
@@ -19,10 +20,14 @@ namespace PoeHUD.Hud.Health
             UniqueEnemy = new UnitSettings(0xff0000ff, 0xffa500ff, 0x66ff99ff, false);
             ShowDebuffPanel = false;
             DebuffPanelIconSize = new RangeNode<int>(20, 15, 40);
+            X = new RangeNode<float>(0, -200, 200);
+            Y = new RangeNode<float>(0, -200, 500);
+            NewStyle = false;
         }
 
         public ToggleNode ShowInTown { get; set; }
         public ToggleNode ShowES { get; set; }
+        public ToggleNode ShowMana { get; set; }
         public ToggleNode ShowIncrements { get; set; }
         public ToggleNode ShowEnemies { get; set; }
         public UnitSettings Players { get; set; }
@@ -33,5 +38,8 @@ namespace PoeHUD.Hud.Health
         public UnitSettings UniqueEnemy { get; set; }
         public ToggleNode ShowDebuffPanel { get; set; }
         public RangeNode<int> DebuffPanelIconSize { get; set; }
+        public RangeNode<float> X { get; set; }
+        public RangeNode<float> Y { get; set; }
+        public ToggleNode NewStyle { get; set; }
     }
 }

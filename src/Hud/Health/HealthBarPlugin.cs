@@ -35,8 +35,31 @@ namespace PoeHUD.Hud.Health
 
             string json = File.ReadAllText("config/debuffPanel.json");
             debuffPanelConfig = JsonConvert.DeserializeObject<DebuffPanelConfig>(json);
+            (new Coroutine(() =>
+            { _spriteHp++;
+             _spriteMp++;
+             _spriteEs++;
+                if (_spriteHp >= _spriteCount)
+                    _spriteHp = 0;
+                if (_spriteMp >= _spriteCount)
+                    _spriteMp = 0;
+                if (_spriteEs >= _spriteCount)
+                    _spriteEs = 0;
+                
+            }, new WaitTime(40), nameof(HealthBar), "spriteHp")).Run();
         }
 
+        private int _spriteHp = 0;
+        private int _spriteEs = 24;
+        private int _spriteMp = 0;
+        private float _spriteCount = 60f;
+        RectangleF bgPlayeRectangleF;                         
+        RectangleF hpPlayer;                                  
+        RectangleF hpPlayerSprite;                                 
+        RectangleF esPLayer;                                  
+        RectangleF esPlayerSprite;                                 
+        RectangleF manaPLayer;                                
+        RectangleF manaPlayerSprite;                               
         public override void Render()
         {
             try
@@ -71,8 +94,13 @@ namespace PoeHUD.Hud.Health
                         float hpWidth = hpPercent * scaledWidth;
                         float esWidth = esPercent * scaledWidth;
                         var bg = new RectangleF(mobScreenCoords.X - scaledWidth / 2, mobScreenCoords.Y - scaledHeight / 2, scaledWidth, scaledHeight);
+                        if (healthBar.Type == CreatureType.Player && Settings.NewStyle)
+                        {
+                            bg.X += Settings.X;
+                            bg.Y += Settings.Y;
+                        }
                         if (!GameController.Window.GetWindowRectangle().Intersects(bg))
-                            continue;
+                             continue;
                         if (hpPercent <= 0.1f)
                         {
                             color = healthBar.Settings.Under10Percent;
@@ -81,17 +109,69 @@ namespace PoeHUD.Hud.Health
                         var yPosition = DrawFlatESAmount(healthBar, bg);
                         yPosition = DrawDebuffPanel(new Vector2(bg.Left, yPosition), healthBar, healthBar.Life);
                         ShowDps(healthBar, new Vector2(bg.Center.X, yPosition));
+                        if (healthBar.Type == CreatureType.Player && Settings.NewStyle )
+                        {
+                            var info = healthBar.Life;
+                            var unreserved = (info.MaxMana - info.ReservedFlatMana-
+                                             (info.MaxMana * info.ReservedPercentMana * 0.01f));
+                            var manaPercent = (info.CurMana) /(unreserved);
+                            bgPlayeRectangleF = new RectangleF(bg.X, bg.Y, 2.5f*bg.Width, bg.Height);
+                            hpPlayer = new RectangleF(bg.X, bg.Y, 2.5f*bg.Width * hpPercent, bg.Height);
+                            hpPlayerSprite = new RectangleF(0, _spriteHp/_spriteCount, 1f*hpPercent, 1/_spriteCount);
+                            if (Settings.ShowES)
+                            {
+                                esPLayer = new RectangleF(bg.X,bg.Y + (bg.Height) / 2f, 2.5f * bg.Width * esPercent,bg.Height / 2f);
+                                esPlayerSprite = new RectangleF(0, _spriteEs / _spriteCount, 1f * esPercent, 1 / _spriteCount);
+                            }
+                            if (Settings.ShowMana)
+                            {
+                                manaPLayer = new RectangleF(bg.X, bg.Y + bg.Height, 2.5f * bg.Width * manaPercent,
+                                    bg.Height / 2f);
+                                manaPlayerSprite = new RectangleF(0, _spriteMp / _spriteCount, 1f * manaPercent,
+                                    1 / _spriteCount);
+                            }
+                            float hpPlusEsPercent = info.HPPercentage;
+                            if (Settings.ShowES)
+                            {
+                                hpPlusEsPercent = (info.CurES + info.CurHP) /
+                                      (info.MaxES + (info.MaxHP - info.ReservedFlatHP -
+                                                     (info.MaxHP * info.ReservedPercentHP * 0.01f)));
+                            }
+                            DrawPercents(healthBar.Settings,hpPlusEsPercent , new RectangleF(bg.X-(1.4f*bg.Width),bg.Y+6,bg.Width,bg.Height));
+                            continue;
+                        }
                         DrawPercents(healthBar.Settings, hpPercent, bg);
                         DrawBackground(color, healthBar.Settings.Outline, bg, hpWidth, esWidth);
                     }
                 }
+
+                if (Settings.NewStyle)                                    
+                {                                                         
+                    Graphics.DrawImage($"bgQ.png",               
+                        bgPlayeRectangleF, Color.Black);                  
+                    Graphics.DrawImage($"hpQ.png",                
+                        hpPlayer,                                         
+                        hpPlayerSprite, Color.Red);                            
+                    if (Settings.ShowES)                                  
+                    {                                                     
+                        Graphics.DrawImage($"esQ.png",           
+                            esPLayer,                                     
+                            esPlayerSprite,                                    
+                            Color.White);                                 
+                    }
+                    if (Settings.ShowMana)
+                    {
+                        Graphics.DrawImage($"manaQ.png",
+                            manaPLayer,
+                            manaPlayerSprite, Color.Aqua);
+                    }
+                }                                                         
             }
             catch
             {
                 // do nothing
             }
         }
-
         private void ShowDps(HealthBar healthBar, Vector2 point)
         {
             if (!healthBar.Settings.ShowFloatingCombatDamage)

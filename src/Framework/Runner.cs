@@ -1,19 +1,19 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using System.Security.Cryptography.X509Certificates;
 
 namespace PoeHUD.Framework
 {
     public class Runner
     {
+        public string Name { get; }
+
         readonly List<Coroutine> _coroutines = new List<Coroutine>();
-        readonly List<(string name, string owner, long ticks, DateTime end, DateTime start)> _finishedCoroutines = new List<(string name, string owner, long ticks, DateTime end, DateTime start)>();
+        readonly List<(string name,string owner,long ticks,DateTime end, DateTime start)> _finishedCoroutines = new List<(string name,string owner,long ticks, DateTime end, DateTime start)>();
         public bool IsRunning => _coroutines.Count > 0;
-        public IEnumerable<(string Name, string Owner, long Ticks, DateTime End, DateTime Started)> FinishedCoroutines => _finishedCoroutines;
-        public int FinishedCoroutineCount { get; private set; } = 0;
+        public IEnumerable<(string Name,string Owner,long Ticks, DateTime End, DateTime Started)> FinishedCoroutines => _finishedCoroutines;
+        public int FinishedCoroutineCount { get; private set; }
         public IEnumerable<Coroutine> Coroutines => _coroutines;
         public IEnumerable<Coroutine> WorkingCoroutines => _coroutines.Where(x => x.DoWork);
         private readonly HashSet<Coroutine> _autorestartCoroutines = new HashSet<Coroutine>();
@@ -22,14 +22,15 @@ namespace PoeHUD.Framework
         public int CountAddCoroutines { get; private set; }
         public int CountFalseAddCoroutines { get; private set; }
         public int RunPerLoopIter { get; set; } = 3;
-        public Runner()
+
+        public Runner(string name)
         {
+            Name = name;
         }
-
-        public Coroutine Run(IEnumerator enumerator, string owner, string name = null)
+        public Coroutine Run(IEnumerator enumerator, string owner, string name =null)
         {
-            var routine = new Coroutine(enumerator, owner, name);
-
+            var routine = new Coroutine(enumerator,owner,name);
+            
             var first = _coroutines.FirstOrDefault(x => x.Name == routine.Name && x.Owner == routine.Owner);
             if (first != null)
             {
@@ -55,10 +56,6 @@ namespace PoeHUD.Framework
         }
 
 
-        private bool CheckExists(Coroutine coroutine)
-        {
-            return true;
-        }
         public void StopCoroutines(IEnumerable<Coroutine> coroutines)
         {
             foreach (var coroutine in coroutines)
@@ -72,11 +69,7 @@ namespace PoeHUD.Framework
                     coroutine.Resume();
         }
         public bool HasName(string name) => _coroutines.Any(x => x.Name == name);
-
         public int Count => _coroutines.Count;
-
-        public bool Done(Coroutine coroutine) => coroutine.Priority != CoroutinePriority.Critical && coroutine.Priority != CoroutinePriority.High &&
-                                                   coroutine.Done();
 
         public bool Update()
         {
@@ -88,10 +81,10 @@ namespace PoeHUD.Framework
                     {
                         if (_coroutines[i].DoWork)
                         {
-                            if (_coroutines[i].MoveNext()) continue;
+                            if(_coroutines[i].MoveNext()) continue;
                             _coroutines[i].Done();
                         }
-
+                            
                     }
                     else
                     {
@@ -112,7 +105,7 @@ namespace PoeHUD.Framework
 
         public void AddToAutoupdate(Coroutine coroutine)
         {
-            this._autorestartCoroutines.Add(coroutine.GetCopy(coroutine));
+            _autorestartCoroutines.Add(coroutine.GetCopy(coroutine));
         }
     }
 }
