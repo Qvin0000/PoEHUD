@@ -8,7 +8,7 @@ namespace PoeHUD.Models.CacheComponent
 {
     public class PlayerCache
     {
-        public Entity Player { get; }
+        public Entity Player { get; private set; }
         private  Positioned _positioned;
         private  Actor _actor;
 
@@ -21,10 +21,11 @@ namespace PoeHUD.Models.CacheComponent
             this.Player = Player;
         }
 
-        public void UpdateCache()
+        public void UpdateCache(Entity player)
         {
-            _positioned = null;
-            _actor = null;
+            Player = player;
+            _positioned = Player.GetComponent<Positioned>();
+            _actor = Player.GetComponent<Actor>();
         }
     }
 }

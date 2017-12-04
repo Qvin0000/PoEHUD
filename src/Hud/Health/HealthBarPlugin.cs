@@ -53,13 +53,7 @@ namespace PoeHUD.Hud.Health
         private int _spriteEs = 24;
         private int _spriteMp = 0;
         private float _spriteCount = 60f;
-        RectangleF bgPlayeRectangleF;                         
-        RectangleF hpPlayer;                                  
-        RectangleF hpPlayerSprite;                                 
-        RectangleF esPLayer;                                  
-        RectangleF esPlayerSprite;                                 
-        RectangleF manaPLayer;                                
-        RectangleF manaPlayerSprite;                               
+        List<PlayerBarRenderData> _playersBarRenderData = new List<PlayerBarRenderData>();                       
         public override void Render()
         {
             try
@@ -109,25 +103,26 @@ namespace PoeHUD.Hud.Health
                         var yPosition = DrawFlatESAmount(healthBar, bg);
                         yPosition = DrawDebuffPanel(new Vector2(bg.Left, yPosition), healthBar, healthBar.Life);
                         ShowDps(healthBar, new Vector2(bg.Center.X, yPosition));
-                        if (healthBar.Type == CreatureType.Player && Settings.NewStyle )
+                        if (healthBar.Type == CreatureType.Player && Settings.NewStyle)
                         {
+                            var playerBarRenderData = new PlayerBarRenderData();
                             var info = healthBar.Life;
                             var unreserved = (info.MaxMana - info.ReservedFlatMana-
                                              (info.MaxMana * info.ReservedPercentMana * 0.01f));
                             var manaPercent = (info.CurMana) /(unreserved);
-                            bgPlayeRectangleF = new RectangleF(bg.X, bg.Y, 2.5f*bg.Width, bg.Height);
-                            hpPlayer = new RectangleF(bg.X, bg.Y, 2.5f*bg.Width * hpPercent, bg.Height);
-                            hpPlayerSprite = new RectangleF(0, _spriteHp/_spriteCount, 1f*hpPercent, 1/_spriteCount);
+                            playerBarRenderData.bgPlayeRectangleF = new RectangleF(bg.X, bg.Y, 2.5f*bg.Width, bg.Height);
+                            playerBarRenderData.hpPlayer = new RectangleF(bg.X, bg.Y, 2.5f*bg.Width * hpPercent, bg.Height);
+                            playerBarRenderData.hpPlayerSprite = new RectangleF(0, _spriteHp/_spriteCount, 1f*hpPercent, 1/_spriteCount);
                             if (Settings.ShowES)
                             {
-                                esPLayer = new RectangleF(bg.X,bg.Y + (bg.Height) / 2f, 2.5f * bg.Width * esPercent,bg.Height / 2f);
-                                esPlayerSprite = new RectangleF(0, _spriteEs / _spriteCount, 1f * esPercent, 1 / _spriteCount);
+                                playerBarRenderData.esPLayer = new RectangleF(bg.X,bg.Y + (bg.Height) / 2f, 2.5f * bg.Width * esPercent,bg.Height / 2f);
+                                playerBarRenderData.esPlayerSprite = new RectangleF(0, _spriteEs / _spriteCount, 1f * esPercent, 1 / _spriteCount);
                             }
                             if (Settings.ShowMana)
                             {
-                                manaPLayer = new RectangleF(bg.X, bg.Y + bg.Height, 2.5f * bg.Width * manaPercent,
+                                playerBarRenderData.manaPLayer = new RectangleF(bg.X, bg.Y + bg.Height, 2.5f * bg.Width * manaPercent,
                                     bg.Height / 2f);
-                                manaPlayerSprite = new RectangleF(0, _spriteMp / _spriteCount, 1f * manaPercent,
+                                playerBarRenderData.manaPlayerSprite = new RectangleF(0, _spriteMp / _spriteCount, 1f * manaPercent,
                                     1 / _spriteCount);
                             }
                             float hpPlusEsPercent = info.HPPercentage;
@@ -138,6 +133,7 @@ namespace PoeHUD.Hud.Health
                                                      (info.MaxHP * info.ReservedPercentHP * 0.01f)));
                             }
                             DrawPercents(healthBar.Settings,hpPlusEsPercent , new RectangleF(bg.X-(1.4f*bg.Width),bg.Y+6,bg.Width,bg.Height));
+                            _playersBarRenderData.Add(playerBarRenderData);
                             continue;
                         }
                         DrawPercents(healthBar.Settings, hpPercent, bg);
@@ -146,26 +142,31 @@ namespace PoeHUD.Hud.Health
                 }
 
                 if (Settings.NewStyle)                                    
-                {                                                         
-                    Graphics.DrawImage($"bgQ.png",               
-                        bgPlayeRectangleF, Color.Black);                  
-                    Graphics.DrawImage($"hpQ.png",                
-                        hpPlayer,                                         
-                        hpPlayerSprite, Color.Red);                            
-                    if (Settings.ShowES)                                  
-                    {                                                     
-                        Graphics.DrawImage($"esQ.png",           
-                            esPLayer,                                     
-                            esPlayerSprite,                                    
-                            Color.White);                                 
-                    }
-                    if (Settings.ShowMana)
+                {
+                    foreach (var playerBarRenderData in _playersBarRenderData)
                     {
-                        Graphics.DrawImage($"manaQ.png",
-                            manaPLayer,
-                            manaPlayerSprite, Color.Aqua);
+                        Graphics.DrawImage($"bgQ.png",
+                            playerBarRenderData.bgPlayeRectangleF, Color.Black);
+                        Graphics.DrawImage($"hpQ.png",
+                            playerBarRenderData.hpPlayer,
+                            playerBarRenderData.hpPlayerSprite, Color.Red);
+                        if (Settings.ShowES)
+                        {
+                            Graphics.DrawImage($"esQ.png",
+                                playerBarRenderData.esPLayer,
+                                playerBarRenderData.esPlayerSprite,
+                                Color.White);
+                        }
+                        if (Settings.ShowMana)
+                        {
+                            Graphics.DrawImage($"manaQ.png",
+                                playerBarRenderData.manaPLayer,
+                                playerBarRenderData.manaPlayerSprite, Color.Aqua);
+                        }
                     }
-                }                                                         
+                    _playersBarRenderData.Clear();
+                } 
+                
             }
             catch
             {
@@ -353,6 +354,17 @@ namespace PoeHUD.Hud.Health
                 var position = new Vector2(bg.X + bg.Width + 4, bg.Y);
                 Graphics.DrawText(text, settings.TextSize, position, settings.PercentTextColor);
             }
+        }
+
+        class PlayerBarRenderData
+        {
+            public RectangleF bgPlayeRectangleF { get; set; }
+            public RectangleF hpPlayer { get; set; }                                  
+            public RectangleF hpPlayerSprite { get; set; }                              
+            public RectangleF esPLayer { get; set; }                                  
+            public RectangleF esPlayerSprite { get; set; }                                 
+            public RectangleF manaPLayer { get; set; }                                
+            public RectangleF manaPlayerSprite { get; set; }  
         }
     }
 }

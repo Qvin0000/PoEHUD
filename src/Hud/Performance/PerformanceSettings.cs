@@ -15,7 +15,7 @@ namespace PoeHUD.Hud.Performance
             UpdateIngemeStateLimit = new RangeNode<int>(100,25,1000);
             IterCoroutinePerLoop = new RangeNode<int>(3,1,20);
             RenderLimit = new RangeNode<int>(60, 10,200);
-            LoopLimit = new RangeNode<int>(1, 1,300);
+            LoopLimit = new RangeNode<int>(5, 1,300);
             ParallelCoroutineLimit = new RangeNode<int>(3, 1,300);
             Cache = new ToggleNode(true);
         }

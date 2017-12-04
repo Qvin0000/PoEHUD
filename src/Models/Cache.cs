@@ -128,7 +128,6 @@ namespace PoeHUD.Models
         }
         public void UpdateCache()
         {
-            
             _ingameState = null;
             _camera = null;
             _uiRoot = null;
@@ -138,7 +137,7 @@ namespace PoeHUD.Models
             _fpsRectangle = null;
             _latencyRectangle = null;
             _localPlayer = null;
-            _player = null;
+            Player.UpdateCache(_gameController.Game.IngameState.Data.LocalPlayer);
             _window = _gameController.Window.GetWindowRectangleReal();
         }
 
