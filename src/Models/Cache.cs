@@ -1,7 +1,6 @@
 ﻿using PoeHUD.Controllers;
 using PoeHUD.Models.CacheComponent;
 using PoeHUD.Poe;
-using PoeHUD.Poe.Components;
 using PoeHUD.Poe.RemoteMemoryObjects;
 using SharpDX;
 
@@ -21,6 +20,7 @@ namespace PoeHUD.Models
         private Entity _localPlayer;
         private RectangleF _window;
         private PlayerCache _player;
+        private bool _enable = true;
 
         private static Cache _instance;
 
@@ -114,12 +114,21 @@ namespace PoeHUD.Models
             }
         }
 
-        public PlayerCache Player => _player ?? (_player = new PlayerCache(LocalPlayer));
+        public PlayerCache Player => _player ?? (_player = new PlayerCache(_gameController.Game.IngameState.Data.LocalPlayer));
 
         public RectangleF Window => _window.IsEmpty ? (_window= _gameController.Window.GetWindowRectangleReal()) :_window;
 
 
-        public bool Enable { get; set; } = true;
+        public bool Enable
+        {
+            get { return _enable; }
+            set
+            {
+                if (value)
+                    UpdateCache();
+                _enable = value;
+            }
+        }
 
         public Cache()
         {
