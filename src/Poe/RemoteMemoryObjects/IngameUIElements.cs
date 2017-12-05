@@ -18,6 +18,8 @@ namespace PoeHUD.Poe.RemoteMemoryObjects
         public NpcDialog NpcDialog => ReadObjectAt<NpcDialog>(0xD68);
         public VendorSellElement VendorPanel => ReadObjectAt<VendorSellElement>(0xD88);
         public Map Map => ReadObjectAt<Map>(0xCF8);
+        //TODO need change to address + offests
+        public EntityLabel LeagueLabel => (Map.Children[2].Children[0].Children[2]).AsObject<EntityLabel>();
         public IEnumerable<ItemsOnGroundLabelElement> ItemsOnGroundLabels
         {
             get
