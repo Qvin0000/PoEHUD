@@ -46,14 +46,21 @@ namespace PoeHUD.Hud.Health
                 if (_spriteEs >= _spriteCount)
                     _spriteEs = 0;
                 
-            }, new WaitTime(40), nameof(HealthBar), "spriteHp")).Run();
-        }
+            }, new WaitTime(40), nameof(HealthBar), "spriteHp")).AutoRestart(GameController.CoroutineRunner).Run();
 
+            //TODO After testing create settings for wait value
+            (new Coroutine(() => {foreach (var healthBar in healthBars)
+                {
+                    healthBar.Value.RemoveAll(hp => !hp.Entity.IsValid);
+                } }, new WaitRender(10), nameof(HealthBarPlugin), "RemoveAllHealthBar"))
+                .AutoRestart(GameController.CoroutineRunner).Run();
+        }
+        
         private int _spriteHp = 0;
         private int _spriteEs = 24;
         private int _spriteMp = 0;
         private float _spriteCount = 60f;
-        List<PlayerBarRenderData> _playersBarRenderData = new List<PlayerBarRenderData>();                       
+        List<PlayerBarRenderData> _playersBarRenderData = new List<PlayerBarRenderData>();
         public override void Render()
         {
             try
@@ -70,10 +77,6 @@ namespace PoeHUD.Hud.Health
                 Func<HealthBar, bool> showHealthBar = x => x.IsShow(Settings.ShowEnemies);
                 //Not Parallel better for performance
                 //Parallel.ForEach(healthBars, x => x.Value.RemoveAll(hp => !hp.Entity.IsValid));
-                foreach (var healthBar in healthBars)
-                {
-                    healthBar.Value.RemoveAll(hp => !hp.Entity.IsValid);
-                }
                 foreach (HealthBar healthBar in healthBars.SelectMany(x => x.Value).Where(hp => showHealthBar(hp) && hp.Entity.IsAlive))
                 {
                     Vector3 worldCoords = healthBar.Entity.Pos;
