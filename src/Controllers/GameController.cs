@@ -181,9 +181,11 @@ namespace PoeHUD.Controllers
                 Performance.Cache.OnValueChanged += () => { Cache.Enable = Performance.Cache; };
             }
             updateArea.AutoRestart(CoroutineRunner).Run();
-            //Sometimes maybe unstable need testing
-            updateEntity.AutoRestart(CoroutineRunnerParallel).RunParallel();
-            updateEntity.Run();
+            //Sometimes parallel maybe unstable need testing
+            if (Performance?.ParallelEntityUpdate)
+                updateEntity.AutoRestart(CoroutineRunnerParallel).RunParallel();
+            else
+                updateEntity.AutoRestart(CoroutineRunner).Run();
             sw.Restart();
             CoroutineRunnerParallel.RunPerLoopIter = 1;
             updateCoroutine.Run();

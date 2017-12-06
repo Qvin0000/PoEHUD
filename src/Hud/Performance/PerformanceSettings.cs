@@ -18,6 +18,7 @@ namespace PoeHUD.Hud.Performance
             LoopLimit = new RangeNode<int>(5, 1,300);
             ParallelCoroutineLimit = new RangeNode<int>(3, 1,300);
             Cache = new ToggleNode(true);
+            ParallelEntityUpdate = new ToggleNode(false);
         }
 
 
@@ -29,6 +30,7 @@ namespace PoeHUD.Hud.Performance
         public RangeNode<int> LoopLimit { get; set; }
         public RangeNode<int> ParallelCoroutineLimit { get; set; }
         public ToggleNode Cache { get; set; }
+        public ToggleNode ParallelEntityUpdate { get; set; }
         
     }
 }
