@@ -7,6 +7,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace PoeHUD.Framework
 {
@@ -69,7 +70,6 @@ namespace PoeHUD.Framework
 
         public int ReadInt(int addr, params int[] offsets)
         {
-            //I think for better for often operation
             int num = ReadInt(addr);
             int result = num;
             for (var index = 0; index < offsets.Length; index++)
@@ -82,7 +82,6 @@ namespace PoeHUD.Framework
 
         public int ReadInt(long addr, params long[] offsets)
         {
-            //I think for better for often operation
             long num = ReadLong(addr);
             long result = num;
             for (var index = 0; index < offsets.Length; index++)
@@ -93,7 +92,7 @@ namespace PoeHUD.Framework
             return (int)result;
         }
 
-
+      
 
 
         public float ReadFloat(long addr)
@@ -108,7 +107,7 @@ namespace PoeHUD.Framework
 
         public long ReadLong(long addr, params long[] offsets)
         {
-            //I think it better for often operation
+            //I think for better for often operation
             long num = ReadLong(addr);
             long result = num;
             for (var index = 0; index < offsets.Length; index++)
@@ -203,8 +202,8 @@ namespace PoeHUD.Framework
         {
             byte[] exeImage = ReadBytes(AddressOfProcess, 0x2000000); //33mb
             var address = new long[patterns.Length];
-
-            for (int iPattern = 0; iPattern < patterns.Length; iPattern++)
+            
+            Parallel.For(0, patterns.Length, iPattern =>
             {
                 Pattern pattern = patterns[iPattern];
                 byte[] patternData = pattern.Bytes;
@@ -212,7 +211,7 @@ namespace PoeHUD.Framework
 
                 bool found = false;
 
-                for (int offset = 0; offset < exeImage.Length - patternLength; offset++)
+                for (int offset = 0; offset < exeImage.Length - patternLength; offset ++)
                 {
                     if (CompareData(pattern, exeImage, offset))
                     {
@@ -223,18 +222,25 @@ namespace PoeHUD.Framework
                     }
                 }
 
-                if (!found)
+                if(!found)
                 {
                     //System.Windows.Forms.MessageBox.Show("Pattern " + iPattern + " is not found!");
                     DebugStr += "Pattern " + iPattern + " is not found!" + Environment.NewLine;
                 }
-            }
+            });
             return address;
         }
 
         private bool CompareData(Pattern pattern, byte[] data, int offset)
         {
-            return !pattern.Bytes.Where((t, i) => pattern.Mask[i] == 'x' && t != data[offset + i]).Any();
+            bool any = false;
+            for (int i = 0; i < pattern.Bytes.Length; i++)
+                if (pattern.Mask[i] == 'x' && pattern.Bytes[i] != data[offset + i])
+                {
+                    any = true;
+                    break;
+                }
+            return !any;
         }
     }
 }
