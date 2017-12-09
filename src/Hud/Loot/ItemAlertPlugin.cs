@@ -35,8 +35,7 @@ namespace PoeHUD.Hud.Loot
         private PoeFilterVisitor visitor;
         public static bool holdKey;
         private readonly SettingsHub settingsHub;
-
-
+        Coroutine coroutine;
         public ItemAlertPlugin(GameController gameController, Graphics graphics, ItemAlertSettings settings, SettingsHub settingsHub)
             : base(gameController, graphics, settings)
         {
@@ -49,6 +48,30 @@ namespace PoeHUD.Hud.Loot
             GameController.Area.OnAreaChange += OnAreaChange;
             PoeFilterInit(settings.FilePath);
             settings.FilePath.OnFileChanged += () => PoeFilterInit(settings.FilePath);
+
+            coroutine = (new Coroutine(() =>
+                {
+                    if (!GameController.Area.CurrentArea.IsTown)
+                    {
+                        var entityWrappers = GameController.EntityListWrapper.Entities.ToList();
+                        foreach (var entity in entityWrappers)
+                        {
+                            if (entity == null) continue;
+                            if (currentAlerts.ContainsKey(entity) || !entity.HasComponent<WorldItem>() ||
+                                (!Settings.Alternative || string.IsNullOrEmpty(Settings.FilePath))) continue;
+                            IEntity item = entity.GetComponent<WorldItem>().ItemEntity;
+                            var vis = GameController.Game.IngameState.IngameUi.ItemsOnGroundLabels
+                                .FirstOrDefault(x =>
+                                    x.ItemOnGround.GetComponent<WorldItem>().ItemEntity.Path == item.Path);
+                            if (vis == null || !vis.IsVisible) continue;
+                            var result = visitor.Visit(item);
+                            if (result == null) continue;
+                            AlertDrawStyle drawStyle = result;
+                            PrepareForDrawingAndPlaySound(entity, drawStyle);
+                        }
+                    }
+                }, new WaitRender((long) (GameController.Performance.RenderLimit*0.75f)), nameof(ItemAlertPlugin),
+                "Check items on ground")).AutoRestart(GameController.CoroutineRunner).Run();
         }
 
         private void PoeFilterInit(string path)
@@ -107,10 +130,15 @@ namespace PoeHUD.Hud.Loot
             {
                 holdKey = false;
             }
-            if (!Settings.Enable) { return; }
+            if (!Settings.Enable)
+            {
+                coroutine.Pause();
+                return;
+            }
 
             if (Settings.Enable)
             {
+                coroutine.Resume();
                 Positioned pos = GameController.Player.GetComponent<Positioned>();
                 if (pos == null)
                     return;
@@ -122,7 +150,6 @@ namespace PoeHUD.Hud.Loot
                 if (Settings.BorderSettings.Enable)
                 {
                     Dictionary<EntityWrapper, AlertDrawStyle> tempCopy = new Dictionary<EntityWrapper, AlertDrawStyle>(currentAlerts);
-                   
                     var keyValuePairs = tempCopy.AsParallel().Where(x => x.Key != null && x.Key.Address != 0 && x.Key.IsValid).ToList();
                     foreach (var kv in keyValuePairs)
                     {
@@ -132,8 +159,10 @@ namespace PoeHUD.Hud.Loot
                         }
                     }
                 }
-                foreach (KeyValuePair<EntityWrapper, AlertDrawStyle> kv in currentAlerts.Where(x => x.Key != null && x.Key.Address != 0 && x.Key.IsValid))
-                {  
+
+                var alerts = currentAlerts.Where(x => x.Key != null && x.Key.Address != 0 && x.Key.IsValid).ToArray();
+                foreach (KeyValuePair<EntityWrapper, AlertDrawStyle> kv in alerts)
+                {
                     //
                     //                       _oo0oo_
                     //                      o8888888o
@@ -166,7 +195,6 @@ namespace PoeHUD.Hud.Loot
                     {
                         text = GetItemName(kv);
                     }
-                    
 
                     if (text == null)
                     {
@@ -180,20 +208,72 @@ namespace PoeHUD.Hud.Loot
                     }
                     else
                     {
-                        if (Settings.ShowText && (!Settings.HideOthers || entityLabel.CanPickUp || entityLabel.MaxTimeForPickUp.TotalSeconds == 0))
+                        if (Settings.ShowText)
                         {
-                            position = DrawText(playerPos, position, BOTTOM_MARGIN, kv, text);
+                            if (Settings.HideOthers)
+                            {
+                                if (entityLabel.CanPickUp || entityLabel.MaxTimeForPickUp.TotalSeconds == 0)
+                                {
+                                    position = DrawText(playerPos, position, BOTTOM_MARGIN, kv, text);
+                                }
+                            }
+                            else
+                            {
+                                if (entityLabel.CanPickUp || entityLabel.MaxTimeForPickUp.TotalSeconds == 0)
+                                {
+                                    position = DrawText(playerPos, position, BOTTOM_MARGIN, kv, text);
+                                }
+                                else
+                                {
+                                    // get current values
+                                    Color TextColor = kv.Value.TextColor;
+                                    Color BorderColor = kv.Value.BorderColor;
+                                    Color BackgroundColor = kv.Value.BackgroundColor;
+
+                                    if (Settings.DimOtherByPercentToggle)
+                                    {
+                                        // edit values to new ones
+                                        double ReduceByPercent = (double)Settings.DimOtherByPercent / 100;
+
+                                        TextColor = ReduceNumbers(TextColor, ReduceByPercent);
+                                        BorderColor = ReduceNumbers(BorderColor, ReduceByPercent);
+                                        BackgroundColor = ReduceNumbers(BackgroundColor, ReduceByPercent);
+
+                                        // backgrounds with low alpha start to look a little strange when dark so im adding an alpha threshold
+                                        if (BackgroundColor.A < 210)
+                                            BackgroundColor.A = 210;
+                                    }
+
+                                    // Complete new KeyValuePair with new stuff
+                                    AlertDrawStyle ModifiedDrawStyle = new AlertDrawStyle(text, TextColor, kv.Value.BorderWidth, BorderColor, BackgroundColor, kv.Value.IconIndex);
+                                    KeyValuePair<EntityWrapper, AlertDrawStyle> NewKV = new KeyValuePair<EntityWrapper, AlertDrawStyle>(kv.Key, ModifiedDrawStyle);
+
+                                    position = DrawText(playerPos, position, BOTTOM_MARGIN, NewKV, text);
+                                }
+                            }
                         }
                     }
                 }
                 Size = new Size2F(0, position.Y); //bug absent width
-              
+
                 if (shouldUpdate)
                 {
                     currentLabels = GameController.Game.IngameState.IngameUi.ItemsOnGroundLabels
                         .GroupBy(y => y.ItemOnGround.Address).ToDictionary(y => y.Key, y => y.First());
                 }
             }
+        }
+
+        private Color ReduceNumbers(Color oldColor, double percent)
+        {
+            Color newColor = oldColor;
+
+            newColor.R = (byte)((double)oldColor.R - ((double)oldColor.R * percent));
+            newColor.G = (byte)((double)oldColor.G - ((double)oldColor.G * percent));
+            newColor.B = (byte)((double)oldColor.B - ((double)oldColor.B * percent));
+            newColor.A = (byte)((double)oldColor.A - (((double)oldColor.A / 10) * percent));
+
+            return newColor;
         }
 
         private Vector2 DrawText(Vector2 playerPos, Vector2 position, int BOTTOM_MARGIN,
@@ -216,14 +296,18 @@ namespace PoeHUD.Hud.Loot
             {
 
                 IEntity item = entity.GetComponent<WorldItem>().ItemEntity;
-
+                var vis = GameController.Game.IngameState.IngameUi.ItemsOnGroundLabels.FirstOrDefault(x =>
+                    x.ItemOnGround.GetComponent<WorldItem>().ItemEntity.Path == item.Path);
                 if (Settings.Alternative && !string.IsNullOrEmpty(Settings.FilePath))
                 {
-                    var result = visitor.Visit(item);
-                    if (result != null)
+                    if (vis != null && vis.IsVisible)
                     {
-                        AlertDrawStyle drawStyle = result;
-                        PrepareForDrawingAndPlaySound(entity, drawStyle);
+                        var result = visitor.Visit(item);
+                        if (result != null)
+                        {
+                            AlertDrawStyle drawStyle = result;
+                            PrepareForDrawingAndPlaySound(entity, drawStyle);
+                        }
                     }
                 }
                 else
@@ -365,7 +449,7 @@ namespace PoeHUD.Hud.Loot
             return shouldUpdate;
         }
 
-        private Vector2     DrawItem(AlertDrawStyle drawStyle, Vector2 delta, Vector2 position, Vector2 padding, string text)
+        private Vector2 DrawItem(AlertDrawStyle drawStyle, Vector2 delta, Vector2 position, Vector2 padding, string text)
         {
             padding.X -= drawStyle.BorderWidth;
             padding.Y -= drawStyle.BorderWidth;

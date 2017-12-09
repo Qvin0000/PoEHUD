@@ -18,6 +18,7 @@ namespace PoeHUD.Models
 
         public EntityWrapper(GameController Poe, Entity entity)
         {
+            
             gameController = Poe;
             internalEntity = entity;
             components = internalEntity.GetComponents();

@@ -1,18 +1,21 @@
 using System;
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
+using ImGuiNET;
 using PoeHUD.DebugPlug;
 using PoeHUD.Framework;
 using PoeHUD.Framework.Helpers;
+using PoeHUD.Hud.Dev;
 using PoeHUD.Hud.Performance;
 using PoeHUD.Hud.Settings;
 using PoeHUD.Models;
 using PoeHUD.Poe.RemoteMemoryObjects;
-
 namespace PoeHUD.Controllers
 {
     public class GameController
@@ -52,7 +55,7 @@ namespace PoeHUD.Controllers
         public EntityWrapper Player => EntityListWrapper.Player;
         public bool InGame { get; private set; }
         public bool IsLoading { get; private set; }
-        public bool InGameReal => Game.IngameState.InGame;
+        bool InGameReal => Game.IngameState.InGame;
         public bool AutoResume { get; set; }
         public FsController Files { get; private set; }
         public bool IsForeGroundCache { get; private set; }
@@ -179,6 +182,10 @@ namespace PoeHUD.Controllers
                 Performance.UpdateIngemeStateLimit.OnValueChanged += () =>{     CoroutineRunner.Coroutines.Concat(CoroutineRunnerParallel.Coroutines).FirstOrDefault(x => x.Name == "Update Entity")
                     ?.UpdateCondtion(new WaitTime(Performance.UpdateIngemeStateLimit));};
                 Performance.Cache.OnValueChanged += () => { Cache.Enable = Performance.Cache; };
+                Performance.DpsUpdateTime.OnValueChanged += () =>
+                {
+                    CoroutineRunner.Coroutines.Concat(CoroutineRunnerParallel.Coroutines).FirstOrDefault(x=>x.Name == "Calculate DPS")?.UpdateCondtion(new WaitTime(Performance.DpsUpdateTime));
+                };
             }
             updateArea.AutoRestart(CoroutineRunner).Run();
             //Sometimes parallel maybe unstable need testing

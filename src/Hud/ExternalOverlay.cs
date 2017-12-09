@@ -24,9 +24,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using PoeHUD.Hud.Performance;
 using Color = System.Drawing.Color;
 using Graphics2D = PoeHUD.Hud.UI.Graphics;
 using Rectangle = System.Drawing.Rectangle;
+using System.Collections;
 using PoeHUD.Hud.Dev;
 
 namespace PoeHUD.Hud
@@ -141,6 +143,7 @@ namespace PoeHUD.Hud
         {
             Bounds = WinApi.GetClientRectangle(gameHandle);
             WinApi.EnableTransparent(Handle, Bounds);
+            gameController.Performance = settings.PerformanceSettings;
             graphics = new Graphics2D(this, Bounds.Width, Bounds.Height);
             plugins.Add(new HealthBarPlugin(gameController, graphics, settings.HealthBarSettings));
             plugins.Add(new MinimapPlugin(gameController, graphics, GatherMapIcons, settings.MapIconsSettings));
@@ -164,9 +167,9 @@ namespace PoeHUD.Hud
             plugins.AddRange(underPanel.GetPlugins());
 
             plugins.Add(new AdvancedTooltipPlugin(gameController, graphics, settings.AdvancedTooltipSettings, settings));
-            plugins.Add(new DebugTree(gameController, graphics, settings.DebugTreeSettings));
-            plugins.Add(new DebugInformation(gameController, graphics, settings.DebugInformationSettings));
-            plugins.Add(new DebugPluginLog(gameController, graphics, settings.DebugPluginLogSettings));
+            plugins.Add(new DebugTree(gameController,graphics,settings.DebugTreeSettings));
+            plugins.Add(new DebugInformation(gameController,graphics,settings.DebugInformationSettings));
+            plugins.Add(new DebugPluginLog(gameController,graphics,settings.DebugPluginLogSettings));
             plugins.Add(new MenuPlugin(gameController, graphics, settings));
             plugins.Add(new PluginExtensionPlugin(gameController, graphics));//Should be after MenuPlugin
 
@@ -175,13 +178,12 @@ namespace PoeHUD.Hud
 
             CheckGameWindow();
             CheckGameState();
-            gameController.Performance = settings.PerformanceSettings;
             graphics.Render += () => plugins.ForEach(x => x.Render());
             gameController.Clear += graphics.Clear;
             gameController.Render += graphics.TryRender;
             await Task.Run(() => gameController.WhileLoop());
         }
 
-
+       
     }
 }

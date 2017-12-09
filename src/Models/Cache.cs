@@ -134,6 +134,7 @@ namespace PoeHUD.Models
         {
             _window = RectangleF.Empty;
             _gameController = GameController.Instance;
+           
         }
         public void UpdateCache()
         {

@@ -3,7 +3,6 @@ using System.Collections;
 using PoeHUD.Controllers;
 using PoeHUD.Framework.Helpers;
 
-
 namespace PoeHUD.Framework
 {
     public class Coroutine

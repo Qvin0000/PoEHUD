@@ -48,11 +48,10 @@ namespace PoeHUD.Hud.Health
                 
             }, new WaitTime(40), nameof(HealthBar), "spriteHp")).AutoRestart(GameController.CoroutineRunner).Run();
 
-            //TODO After testing create settings for wait value
             (new Coroutine(() => {foreach (var healthBar in healthBars)
                 {
                     healthBar.Value.RemoveAll(hp => !hp.Entity.IsValid);
-                } }, new WaitRender(10), nameof(HealthBarPlugin), "RemoveAllHealthBar"))
+                } }, new WaitRender(10), nameof(HealthBarPlugin), "RemoveAll"))
                 .AutoRestart(GameController.CoroutineRunner).Run();
         }
         
