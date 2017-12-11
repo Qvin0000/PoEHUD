@@ -7,17 +7,14 @@ namespace PoeHUD.Poe.RemoteMemoryObjects
     public class Inventory : RemoteMemoryObject
     {
         public long ItemCount => M.ReadLong(Address + 0x410, 0x630, 0x50);
-        public long SizeInv => M.ReadInt(Address + 0x410, 0x630, 0x20);
-        public long SizeInv2 => M.ReadInt(Address + 0x410, 0x630, 0x0C);
-        public long Clicks => M.ReadLong(Address + 0x410, 0x630, 0xA0);
-        public int HoldItem => M.ReadInt(Address + 0x410, 0x658); //1 - FreeSpace, 2 - ReplaceItem
+        public long TotalBoxesInInventoryRow => M.ReadInt(Address + 0x410, 0x630, 0x0C);
 
         private InventoryType GetInvType()
         {
-            // For Poe MemoryLeak bug where ChildCount of PlayerInventory keep
-            // Increasing on Area/Map Change. Ref:
-            // http://www.ownedcore.com/forums/mmo/path-of-exile/poe-bots-programs/511580-poehud-overlay-updated-362.html#post3718876
-            // Orriginal Value of ChildCount should be 0x18
+        // For Poe MemoryLeak bug where ChildCount of PlayerInventory keep
+        // Increasing on Area/Map Change. Ref:
+        // http://www.ownedcore.com/forums/mmo/path-of-exile/poe-bots-programs/511580-poehud-overlay-updated-362.html#post3718876
+        // Orriginal Value of ChildCount should be 0x18
             for (int j = 1; j < InventoryList.InventoryCount; j++)
                 if (Game.IngameState.IngameUi.InventoryPanel[(InventoryIndex)j].Address == Address)
                     return InventoryType.PlayerInventory;
@@ -32,7 +29,7 @@ namespace PoeHUD.Poe.RemoteMemoryObjects
                     return InventoryType.DivinationStash;
                 case 0x01:
                     // Normal Stash and Quad Stash is same.
-                    if (SizeInv2 == 24)
+                    if (TotalBoxesInInventoryRow == 24)
                     {
                         return InventoryType.QuadStash;
                     }

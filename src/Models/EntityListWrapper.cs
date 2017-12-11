@@ -54,8 +54,10 @@ namespace PoeHUD.Models
             entityCache.Clear();
         }
 
+        public bool Updated = false;
         public void RefreshState()
         {
+            Updated = false;
             UpdatePlayer();
             if (gameController.Area.CurrentArea == null)
                 return;
@@ -94,6 +96,7 @@ namespace PoeHUD.Models
             }
             RemoveOldEntitiesFromCache();
             entityCache = newCache;
+            Updated = true;
         }
 
         private void UpdatePlayer()

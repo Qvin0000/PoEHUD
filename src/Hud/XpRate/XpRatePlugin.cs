@@ -90,13 +90,14 @@ namespace PoeHUD.Hud.XpRate
                         float boxHeight = areaNameSize.Height;
                         float boxWidth = MathHepler.Max(areaNameSize.Width);
                         var bounds = new RectangleF(position.X - 84 - boxWidth, position.Y - 5, boxWidth + 90, boxHeight + 12);
-                        string latency = $"({GameController.Game.IngameState.CurLatency})";
                         Graphics.DrawText(areaName, Settings.TextSize, new Vector2(bounds.X + 84, position.Y), AreaNameColor);
                         Graphics.DrawImage("preload-start.png", bounds, Settings.BackgroundColor);
                         Graphics.DrawImage("preload-end.png", bounds, Settings.BackgroundColor);
                         if (Settings.ShowLatency)
                         {
-                            Graphics.DrawText(latency, Settings.TextSize, new Vector2(bounds.X + 35, position.Y), Settings.LatencyTextColor);
+                            string latency = $"({GameController.Game.IngameState.CurLatency})";
+                            Graphics.DrawText(latency, Settings.TextSize, new Vector2(bounds.X + 35, position.Y),
+                                Settings.LatencyTextColor);
                         }
                         Size = bounds.Size;
                         Margin = new Vector2(0, 5);
@@ -131,8 +132,16 @@ namespace PoeHUD.Hud.XpRate
                         if (dif < 0) { bounds.X += dif; bounds.Width -= dif; }
 
                         Graphics.DrawText(timer, Settings.TextSize, new Vector2(bounds.X + 70, position.Y), Settings.TimerTextColor);
-                        Graphics.DrawText(fps, Settings.TextSize, new Vector2(bounds.X + 70, secondLine.Y), Settings.FpsTextColor);
-                        Graphics.DrawText(ping, Settings.TextSize, new Vector2(bounds.X + 70, thirdLine.Y), Settings.LatencyTextColor);
+                        if (Settings.ShowFps)
+                        {
+                            Graphics.DrawText(fps, Settings.TextSize, new Vector2(bounds.X + 70, secondLine.Y),
+                                Settings.FpsTextColor);
+                        }
+                        if (Settings.ShowLatency)
+                        {
+                            Graphics.DrawText(ping, Settings.TextSize, new Vector2(bounds.X + 70, thirdLine.Y),
+                                Settings.LatencyTextColor);
+                        }
                         Graphics.DrawImage("preload-start.png", bounds, Settings.BackgroundColor);
                         Graphics.DrawImage("preload-end.png", bounds, Settings.BackgroundColor);
                         Size = bounds.Size;
@@ -197,7 +206,7 @@ namespace PoeHUD.Hud.XpRate
             getXp = 0;
             //yield return new WaitFunction(() =>{return !GameController.InGameReal;});
             yield return  new WaitFunction(()=> {return GameController.Game.IsGameLoading;});
-            //yield return new WaitTime(100);
+            yield return new WaitTime(300);
             startTime = lastTime = DateTime.Now;
             startXp = GameController.Player.GetComponent<Player>().XP;
             levelXpPenalty = LevelXpPenalty();

@@ -78,12 +78,23 @@ namespace PoeHUD.Hud.Dps
                  monsterAround = Monsters.Count + " monsters" + Environment.NewLine;
                  monsterAroundHp = sumHp + " hp" + Environment.NewLine;
                 }
-                dpsText += peakText += monsterAround += monsterAroundHp;
                 Size2 dpsSize = Graphics.DrawText(dpsText, Settings.DpsTextSize, position, Settings.DpsFontColor, FontDrawFlags.Right);
-                //Size2 peakSize = Graphics.DrawText(peakText, Settings.PeakDpsTextSize, position.Translate(0, dpsSize.Height), Settings.PeakFontColor,FontDrawFlags.Right);
-
+                Size2 peakSize = Graphics.DrawText(peakText, Settings.PeakDpsTextSize, position.Translate(0, dpsSize.Height), Settings.PeakFontColor,FontDrawFlags.Right);
+                int height = dpsSize.Height + peakSize.Height;
                 int width = Math.Max(1, dpsSize.Width);
-                int height = dpsSize.Height;// + peakSize.Height;
+                if (Settings.ShowInformationAround)
+                {
+                    Size2 monsterAroundSize = Graphics.DrawText(monsterAround, Settings.DpsTextSize,
+                        position.Translate(0, peakSize.Height+dpsSize.Height), Settings.PeakFontColor, FontDrawFlags.Right);
+                    Size2 monsterAroundHpSize = Graphics.DrawText(monsterAroundHp, Settings.DpsTextSize,
+                        position.Translate(0, monsterAroundSize.Height+peakSize.Height+dpsSize.Height), Settings.PeakFontColor, FontDrawFlags.Right);
+                    height += monsterAroundSize.Height + monsterAroundHpSize.Height;
+                    width = Math.Max(width, monsterAroundSize.Width);
+                    width = Math.Max(width, monsterAroundHpSize.Width);
+                }
+               
+                
+             
                 var bounds = new RectangleF(position.X - 5 - width - 41, position.Y - 5, width + 50, height + 10);
 
                 Graphics.DrawImage("preload-start.png", bounds, Settings.BackgroundColor);
