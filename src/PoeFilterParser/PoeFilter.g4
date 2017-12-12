@@ -92,9 +92,8 @@ statement:  poeClass
          |  poeIdentified 
          |  poeTextColor
 		 |  poeElderItem
-         |  poeShaperItem
-         |  poeShapedMap;
-
+		 |  poeShaperItem 
+		 |  poeShapedMap;
 
 block: visibility statement*?;
 main: block+;
