@@ -1,17 +1,13 @@
 using System;
-using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
-using ImGuiNET;
 using PoeHUD.DebugPlug;
 using PoeHUD.Framework;
 using PoeHUD.Framework.Helpers;
-using PoeHUD.Hud.Dev;
 using PoeHUD.Hud.Performance;
 using PoeHUD.Hud.Settings;
 using PoeHUD.Models;
@@ -20,10 +16,20 @@ namespace PoeHUD.Controllers
 {
     public class GameController
     {
-        public static GameController Instance;
+        private static GameController _instance;
+        public static GameController Instance
+        {
+            get => _instance;
+            private set
+            {
+                if(_instance==null)
+                _instance = value;
+            }
+        }
 
         public GameController(Memory memory)
         {
+            if (_instance != null) return;
             Instance = this;
             Memory = memory;
             CoroutineRunner = new Runner("Main Coroutine");
@@ -65,8 +71,6 @@ namespace PoeHUD.Controllers
         public readonly Runner CoroutineRunner;
         public readonly Runner CoroutineRunnerParallel;
         public PerformanceSettings Performance;
-      
-        
         public  long RenderCount { get; private set; }
         public void WhileLoop()
         {
@@ -89,75 +93,14 @@ namespace PoeHUD.Controllers
             int updateIngameState = 100;
             int deltaError = 500;
 
-            foreach (var setting in pluginsSettings)
-            {
-                setting.Value.Enable.OnValueChanged += () =>
-                {
-                    var coroutines = CoroutineRunner.Coroutines.Where(x=>x.Owner == setting.Key).Concat(CoroutineRunnerParallel.Coroutines.Where(x=>x.Owner == setting.Key)).ToList();
-                    foreach (var coroutine in coroutines)
-                    {
-                        if (setting.Value.Enable)
-                        {
-                            if (coroutine.AutoResume)
-                            {
-                                coroutine.Resume();
-                            }
-                        }
-                        else
-                        {
-                            coroutine.Pause();
-                        }
-                    }
-                };
-            }
-            void MainCoroutineAction()
-            {
-                
-                var coroutines = CoroutineRunner.Coroutines.Concat(CoroutineRunnerParallel.Coroutines).ToList();
-                if (!InGame || !IsForeGroundCache || IsLoading)
-                {
-                    Clear.SafeInvoke();
-                    foreach (var cor in coroutines)
-                    {
-                        cor.Pause();
-                    }
-                    AutoResume = true;
-                }
-                else
-                {
-                    if (AutoResume)
-                    {
-                        foreach (var coroutine in coroutines)
-                        {
-                            if (pluginsSettings.TryGetValue(coroutine.Owner, out var result))
-                            {
-                                if(result.Enable && coroutine.AutoResume)
-                                    coroutine.Resume();
-                                else
-                                continue;
-                            }
-                            if(coroutine.AutoResume)
-                                coroutine.Resume();
-                        }
-                        AutoResume = false;
-                    }
-                    foreach (var coroutine in coroutines)
-                    {
-
-                        if (pluginsSettings.TryGetValue(coroutine.Owner, out var result) && !result.Enable)
-                        {
-                            coroutine.Pause();
-                        }
-                    }
-                }
-            }
+            ControlCoroutinesInPlugin();
 
             var updateCoroutine = new Coroutine(MainCoroutineAction, 250, nameof(GameController) ,"$#Main#$") {Priority = CoroutinePriority.Critical};
             var updateArea = (new Coroutine(() => { Area.RefreshState(); }, updateAreaLimit, nameof(GameController),"Update area") {Priority = CoroutinePriority.High});
             var updateEntity = (new Coroutine(() => { EntityListWrapper.RefreshState(); }, updateEntityLimit,nameof(GameController), "Update Entity"){Priority = CoroutinePriority.High});
            var updateGameState = (new Coroutine(() => { 
                InGame = InGameReal;
-                IsForeGroundCache = WinApi.IsForegroundWindow(Window.Process.MainWindowHandle);
+                IsForeGroundCache = Performance.AlwaysForeground || WinApi.IsForegroundWindow(Window.Process.MainWindowHandle);
                Cache.ForceUpdateWindowCache();
                IsLoading = Game.IsGameLoading;
            }, updateIngameState, nameof(GameController), "Update Game State"){Priority = CoroutinePriority.Critical}).Run();
@@ -267,6 +210,32 @@ namespace PoeHUD.Controllers
                 }
             }
         }
+
+        private void ControlCoroutinesInPlugin()
+        {
+              foreach (var setting in pluginsSettings)
+                        {
+                            setting.Value.Enable.OnValueChanged += () =>
+                            {
+                                var coroutines = CoroutineRunner.Coroutines.Where(x=>x.Owner == setting.Key).Concat(CoroutineRunnerParallel.Coroutines.Where(x=>x.Owner == setting.Key)).ToList();
+                                foreach (var coroutine in coroutines)
+                                {
+                                    if (setting.Value.Enable)
+                                    {
+                                        if (coroutine.AutoResume)
+                                        {
+                                            coroutine.Resume();
+                                        }
+                                    }
+                                    else
+                                    {
+                                        coroutine.Pause();
+                                    }
+                                }
+                            };
+                        }
+        }
+
         async Task ParallelCoroutineRunner()
         {
             var parallelFps = 0;
@@ -280,7 +249,7 @@ namespace PoeHUD.Controllers
                         }
                         catch (Exception e)
                         {
-                            DebugPlugin.LogMsg($"{e.Message}", 100);
+                            DebugPlugin.LogMsg($"{e.Message}", 10);
                         }
                     }
                     else
@@ -293,6 +262,48 @@ namespace PoeHUD.Controllers
                     await Task.Delay(1);
                     DebugInformation["Parallel Coroutine FPS"] = parallelFps;
                     parallelFps = 0;
+                }
+            }
+        }
+        
+        void MainCoroutineAction()
+        {
+                
+            var coroutines = CoroutineRunner.Coroutines.Concat(CoroutineRunnerParallel.Coroutines).ToList();
+            if (!InGame || !IsForeGroundCache || IsLoading)
+            {
+                Clear.SafeInvoke();
+                foreach (var cor in coroutines)
+                {
+                    cor.Pause();
+                }
+                AutoResume = true;
+            }
+            else
+            {
+                if (AutoResume)
+                {
+                    foreach (var coroutine in coroutines)
+                    {
+                        if (pluginsSettings.TryGetValue(coroutine.Owner, out var result))
+                        {
+                            if(result.Enable && coroutine.AutoResume)
+                                coroutine.Resume();
+                            else
+                                continue;
+                        }
+                        if(coroutine.AutoResume)
+                            coroutine.Resume();
+                    }
+                    AutoResume = false;
+                }
+                foreach (var coroutine in coroutines)
+                {
+
+                    if (pluginsSettings.TryGetValue(coroutine.Owner, out var result) && !result.Enable)
+                    {
+                        coroutine.Pause();
+                    }
                 }
             }
         }
