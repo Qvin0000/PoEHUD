@@ -7,6 +7,7 @@ using PoeHUD.Models;
 using SharpDX;
 using SharpDX.Direct3D9;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Forms;
@@ -194,8 +195,6 @@ namespace PoeHUD.Hud.Preload
                 ResetArea();
                 Parse();
             }
-
-
             if (!holdKey && WinApi.IsKeyDown(Keys.F10))
             {
                 holdKey = true;
@@ -217,13 +216,12 @@ namespace PoeHUD.Hud.Preload
                 Size = new Size2F();
                 return;
             }
-
-            if (isAreaChanged)
+           /* if (isAreaChanged)
             {
                 ResetArea();
                 Parse();
                 isAreaChanged = false;
-            }
+            }*/
 
             Vector2 startPosition = StartDrawPointFunc();
             Vector2 position = startPosition;
@@ -256,10 +254,15 @@ namespace PoeHUD.Hud.Preload
         {
             ResetArea();
             essencefound = false;
-            Parse();
+            (new Coroutine(ParseCoroutine(), nameof(PreloadAlertPlugin), "Area Change Preload Parse")).Run();
             isAreaChanged = true;
         }
 
+        IEnumerator ParseCoroutine()
+        {
+            yield return new WaitTime(100);
+            Parse();
+        }
         private void Parse()
         {
             Memory memory = GameController.Memory;
@@ -268,7 +271,7 @@ namespace PoeHUD.Hud.Preload
 
             int areaChangeCount = GameController.Game.AreaChangeCount;
             long listIterator = memory.ReadLong(pFileRoot + 0x8, 0x0);
-
+            
             List<string> preloadStrings = new List<string>();
 
             for (int i = 0; i < count; i++)
@@ -284,7 +287,7 @@ namespace PoeHUD.Hud.Preload
                 {
                     continue;
                 }
-
+                
                 string text = memory.ReadStringU(memory.ReadLong(listIterator + 0x10), 512);
 
                 if (text.Contains('@')) { text = text.Split('@')[0]; }
@@ -325,7 +328,7 @@ namespace PoeHUD.Hud.Preload
                 return;
             }
 
-
+    
             if (Settings.Essence)
             {
                 PreloadConfigLine essence_alert = Essences.Where(kv => text
@@ -346,7 +349,7 @@ namespace PoeHUD.Hud.Preload
                 }
             }
 
-
+         
             PreloadConfigLine perandus_alert = PerandusLeague.Where(kv => text
                 .StartsWith(kv.Key, StringComparison.OrdinalIgnoreCase)).Select(kv => kv.Value).FirstOrDefault();
             if (perandus_alert != null && Settings.PerandusBoxes)
@@ -364,7 +367,7 @@ namespace PoeHUD.Hud.Preload
                 alerts.Add(new PreloadConfigLine { Text = "Unknown Perandus Chest", FastColor = () => Settings.PerandusChestStandard });
             }
 
-
+         
             PreloadConfigLine _alert = Strongboxes.Where(kv => text
                 .StartsWith(kv.Key, StringComparison.OrdinalIgnoreCase)).Select(kv => kv.Value).FirstOrDefault();
             if (_alert != null && Settings.Strongboxes)
@@ -373,7 +376,7 @@ namespace PoeHUD.Hud.Preload
                 return;
             }
 
-
+            
             PreloadConfigLine alert = Preload.Where(kv => text
                 .EndsWith(kv.Key, StringComparison.OrdinalIgnoreCase)).Select(kv => kv.Value).FirstOrDefault();
             if (alert != null && Settings.Exiles)
