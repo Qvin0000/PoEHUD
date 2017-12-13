@@ -95,7 +95,9 @@ namespace PoeHUD.Hud.Health
                             bg.X += Settings.X;
                             bg.Y += Settings.Y;
                         }
-                        if (!GameController.Window.GetWindowRectangle().Intersects(bg))
+                        var windowRect = GameController.Window.GetWindowRectangle();
+                        var fixNotFullscreen = new RectangleF(windowRect.X + bg.X, windowRect.Y + bg.Y, bg.Width, bg.Height);
+                        if (!windowRect.Intersects(fixNotFullscreen))
                              continue;
                         if (hpPercent <= 0.1f)
                         {
