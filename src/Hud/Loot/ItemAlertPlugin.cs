@@ -16,12 +16,12 @@ using PoeHUD.Poe.RemoteMemoryObjects;
 using SharpDX;
 using SharpDX.Direct3D9;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
-
 
 namespace PoeHUD.Hud.Loot
 {
@@ -47,7 +47,11 @@ namespace PoeHUD.Hud.Loot
             craftingBases = LoadCraftingBases();
             GameController.Area.OnAreaChange += OnAreaChange;
             PoeFilterInit(settings.FilePath);
-            settings.FilePath.OnFileChanged += () => PoeFilterInit(settings.FilePath);
+            settings.FilePath.OnFileChanged += () =>
+            {
+                PoeFilterInit(settings.FilePath);
+                (new Coroutine(RestartParseItemsAfterFilterChange(), nameof(ItemAlertPlugin), "Check items after filter change")).Run();
+            };
 
             coroutine = (new Coroutine(() =>
                 {
@@ -70,10 +74,37 @@ namespace PoeHUD.Hud.Loot
                             PrepareForDrawingAndPlaySound(entity, drawStyle);
                         }
                     }
-                }, new WaitRender((long) (GameController.Performance.RenderLimit*0.75f)), nameof(ItemAlertPlugin),
+                }, new WaitRender((long) (GameController.Performance.RenderLimit * 0.75f)), nameof(ItemAlertPlugin),
                 "Check items on ground")).AutoRestart(GameController.CoroutineRunner).Run();
         }
 
+
+        IEnumerator RestartParseItemsAfterFilterChange()
+        {
+            currentAlerts.Clear();
+            var entities = GameController.Entities.Where(x => x.HasComponent<WorldItem>()).ToArray();
+            for (int i = 0; i < entities.Length; i++)
+            {
+                var entity = entities[i];
+                if (Settings.Enable && entity != null && !GameController.Area.CurrentArea.IsTown &&
+                    entity.HasComponent<WorldItem>())
+                {
+                    IEntity item = entity.GetComponent<WorldItem>().ItemEntity;
+                    if (Settings.Alternative && !string.IsNullOrEmpty(Settings.FilePath))
+                    {
+                        var result = visitor.Visit(item);
+                        if (result != null)
+                        {
+                            AlertDrawStyle drawStyle = result;
+                            PrepareForDrawingAndPlaySound(entity, drawStyle);
+                        }
+                    }
+                }
+            }
+
+            yield return null;
+        }
+        
         private void PoeFilterInit(string path)
         {
             try
