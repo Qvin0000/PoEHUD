@@ -143,12 +143,17 @@ namespace PoeHUD.Models
             _uiRoot = null;
             _ingameUi = null;
             _serverData = null;
-            _data = null;
+            UpdateDataCache();
             _fpsRectangle = null;
             _latencyRectangle = null;
             _localPlayer = null;
             Player.UpdateCache(_gameController.Game.IngameState.Data.LocalPlayer);
             _window = _gameController.Window.GetWindowRectangleReal();
+        }
+
+        public void UpdateDataCache()
+        {
+            _data = null;
         }
 
         public void ForceUpdateWindowCache()
