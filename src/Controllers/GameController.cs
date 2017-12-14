@@ -72,6 +72,10 @@ namespace PoeHUD.Controllers
         public readonly Runner CoroutineRunnerParallel;
         public PerformanceSettings Performance;
         public  long RenderCount { get; private set; }
+        public float[] RenderGraph = new float[121];
+        public float[] DeltaGraph = new float[100];
+        private int offsetRenderGraph = 0;
+        private int offDelta = 0;
         public void WhileLoop()
         {
             Task.Run(ParallelCoroutineRunner);
@@ -113,12 +117,17 @@ namespace PoeHUD.Controllers
                 updateAreaLimit = Performance.UpdateAreaLimit;
                 updateEntityLimit = Performance.UpdateEntityDataLimit;
                 updateIngameState = Performance.UpdateIngemeStateLimit;
+                DeltaGraph = new float[Performance.RenderLimit*5];
                 Performance.UpdateEntityDataLimit.OnValueChanged += () =>
                 {
                     CoroutineRunner.Coroutines.Concat(CoroutineRunnerParallel.Coroutines).FirstOrDefault(x => x.Name == "Update Entity")
                         ?.UpdateCondtion(new WaitTime(1000 / Performance.UpdateEntityDataLimit.Value));
                 };
-                Performance.RenderLimit.OnValueChanged += () => { skipTicksRender = 1000f / Performance.RenderLimit; };
+                Performance.RenderLimit.OnValueChanged += () =>
+                {
+                    skipTicksRender = 1000f / Performance.RenderLimit; 
+                    DeltaGraph = new float[Performance.RenderLimit*5];
+                };
                 Performance.LoopLimit.OnValueChanged += () =>{loopLimit = (int) (300 + Performance.LoopLimit);};
                 Performance.UpdateAreaLimit.OnValueChanged += () => {      CoroutineRunner.Coroutines.Concat(CoroutineRunnerParallel.Coroutines).FirstOrDefault(x => x.Name == "Update Entity")
                     ?.UpdateCondtion(new WaitTime(Performance.UpdateAreaLimit));};
@@ -168,7 +177,11 @@ namespace PoeHUD.Controllers
                     nextRenderTick += skipTicksRender;
                     fpsRender++;
                     RenderCount++;
-                    DebugInformation["DeltaRender"] = (float) (sw.Elapsed.TotalMilliseconds - startFrameTime);
+                    var deltaRender = (float) (sw.Elapsed.TotalMilliseconds - startFrameTime);
+                    DebugInformation["DeltaRender"] = deltaRender;
+                    DeltaGraph[offDelta] = deltaRender;
+                    offDelta++;
+                    if (offDelta >= DeltaGraph.Length) offDelta = 0;
                 }
                 
 
@@ -176,10 +189,13 @@ namespace PoeHUD.Controllers
                 {
                     DebugInformation["FpsLoop"] = fpsLoop;
                     DebugInformation["FpsRender"] = fpsRender;
+                    RenderGraph[offsetRenderGraph] = fpsRender;
+                    offsetRenderGraph++;
+                    if (offsetRenderGraph >= RenderGraph.Length) offsetRenderGraph = 0;
                     DebugInformation["FpsCoroutine"] = fpsCoroutine;
                     DebugInformation["Looplimit"] = loopLimit;
                     DebugInformation["ElapsedSeconds"] = sw.Elapsed.Seconds;
-                    DebugInformation["FpsRenderCount"] = RenderCount;
+                    DebugInformation["RenderCount"] = RenderCount;
                     fpsLoop = 0;
                     fpsRender = 0;
                     fpsCoroutine = 0;

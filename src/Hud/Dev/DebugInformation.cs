@@ -1,4 +1,6 @@
-﻿using System.Linq;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 using ImGuiNET;
 using PoeHUD.Controllers;
@@ -22,13 +24,13 @@ namespace PoeHUD.Hud.Dev
         bool settingsShowWindow;
         private bool editTime;
         private int coroutinePerLoopIter;
-        public override void Render(){
-
-
+        public static Dictionary<string,string> Debug = new Dictionary<string, string>();
+        public override void Render()
+        {
             if (_settings.ShowWindow)
             {
-                ImGui.SetNextWindowPos(new Vector2(100, 100), SetCondition.Appearing);
-                ImGui.SetNextWindowSize(new Vector2(1000, 600), SetCondition.Appearing);
+                ImGui.SetNextWindowPos(new Vector2(100, 100), SetCondition.FirstUseEver);
+                ImGui.SetNextWindowSize(new Vector2(1000, 1000), SetCondition.FirstUseEver);
 
                 settingsShowWindow = _settings.ShowWindow;
                 ImGui.BeginWindow($"DebugInformation", ref settingsShowWindow, WindowFlags.NoCollapse);
@@ -52,56 +54,82 @@ namespace PoeHUD.Hud.Dev
                     ImGui.Text($"{DI.Value}"); ImGui.NextColumn();
                 }
                 ImGui.Columns(1, "", false);
-                ImGui.Separator();
-                if (ImGui.CollapsingHeader($"Finished Coroutine {_gameController.CoroutineRunner.FinishedCoroutineCount}", TreeNodeFlags.CollapsingHeader))
+                if (_gameController.RenderCount % 60==0)
                 {
-                    ImGui.Separator();
-                    ImGui.Columns(5, "CoroutineTableFinished", true);
-                    ImGui.Text($"Name"); ImGui.NextColumn();
-                    ImGui.Text($"Owner"); ImGui.NextColumn();
-                    ImGui.Text($"Ticks"); ImGui.NextColumn();
-                    ImGui.Text($"Started"); ImGui.NextColumn();
-                    ImGui.Text($"End"); ImGui.NextColumn();
-                    var finishedCoroutines = _gameController.CoroutineRunner.FinishedCoroutines.ToList();
-                    for (int i = 0; i < finishedCoroutines.Count(); i++)
-                    {
-                        ImGui.Text($"{finishedCoroutines[i].Name}"); ImGui.NextColumn();
-                        ImGui.Text($"{finishedCoroutines[i].Owner}"); ImGui.NextColumn();
-                        ImGui.Text($"{finishedCoroutines[i].Ticks}"); ImGui.NextColumn();
-                        ImGui.Text($"{finishedCoroutines[i].Started}"); ImGui.NextColumn();
-                        ImGui.Text($"{finishedCoroutines[i].End}"); ImGui.NextColumn();
-
-                    }
+                   _maxRenderGraph = _gameController.RenderGraph.Max();
+                    _maxDeltaGraph = _gameController.DeltaGraph.Max();
                 }
-                ImGui.Columns(1, "", false);
-                ImGui.Separator();
-                if (ImGui.CollapsingHeader($"Auto Restart Coroutine {_gameController.CoroutineRunner.AutorestartCoroutines.Count()}", TreeNodeFlags.CollapsingHeader))
-                {
-                    ImGui.Separator();
-                    ImGui.Columns(5, "AutorestartCoroutinesTable", true);
-                    ImGui.Text($"Name"); ImGui.NextColumn();
-                    ImGui.Text($"Owner"); ImGui.NextColumn();
-                    ImGui.Text($"Timeout ms"); ImGui.NextColumn();
-                    ImGui.Text($"DoWork"); ImGui.NextColumn();
-                    ImGui.Text($"Priority"); ImGui.NextColumn();
-                    var autorestartCoroutines = _gameController.CoroutineRunner.AutorestartCoroutines;
-                    foreach (var autorestartCoroutine in autorestartCoroutines)
-
-                    {
-                        ImGui.Text($"{autorestartCoroutine.Name}"); ImGui.NextColumn();
-                        ImGui.Text($"{autorestartCoroutine.Owner}"); ImGui.NextColumn();
-                        ImGui.Text($"{autorestartCoroutine.TimeoutForAction}"); ImGui.NextColumn();
-                        ImGui.Text($"{autorestartCoroutine.DoWork}"); ImGui.NextColumn();
-                        ImGui.Text($"{autorestartCoroutine.Priority}"); ImGui.NextColumn();
-
-                    }
-                }
-                ImGui.Columns(1, "", false);
+                ImGui.Text($"Fps Graph");
+                ImGui.PushStyleColor(ColorTarget.PlotLines,new Vector4(1,0,0,1));
+                ImGui.PushStyleColor(ColorTarget.FrameBg,new Vector4(1,0.98f,0.98f,0.8f));
+                ImGui.PlotLines($"{_maxRenderGraph}{Environment.NewLine}{_gameController.DebugInformation["FpsRender"]}",_gameController.RenderGraph,0,"",0,_maxRenderGraph,new Vector2(0,100),4);
+                ImGui.Text($"Delta Graph last 5 sec");
+                ImGui.PlotLines($"{_maxDeltaGraph}{Environment.NewLine}{_gameController.DebugInformation["DeltaRender"]}",_gameController.DeltaGraph,0,"",0,_maxDeltaGraph,new Vector2(0,100),4);
+                ImGui.PopStyleColor();
+                ImGui.PopStyleColor();
+                DrawFinished(_gameController.CoroutineRunner);
+                DrawFinished(_gameController.CoroutineRunnerParallel);
+               DrawAutoRestart(_gameController.CoroutineRunner);
+               DrawAutoRestart(_gameController.CoroutineRunnerParallel);
                 ImGui.Separator();
                 ImGui.EndWindow();
 
             }
 
+        }
+        private float _maxRenderGraph = 60;
+        private float _maxDeltaGraph = 20;
+        private void DrawFinished(Runner coroutineRunner)
+        {
+               ImGui.Separator();
+                            if (ImGui.CollapsingHeader($"Finished Coroutine {coroutineRunner.Name} : {_gameController.CoroutineRunner.FinishedCoroutineCount}", TreeNodeFlags.CollapsingHeader))
+                            {
+                                ImGui.Separator();
+                                ImGui.Columns(5, "CoroutineTableFinished", true);
+                                ImGui.Text($"Name"); ImGui.NextColumn();
+                                ImGui.Text($"Owner"); ImGui.NextColumn();
+                                ImGui.Text($"Ticks"); ImGui.NextColumn();
+                                ImGui.Text($"Started"); ImGui.NextColumn();
+                                ImGui.Text($"End"); ImGui.NextColumn();
+                                var finishedCoroutines = coroutineRunner.FinishedCoroutines.ToList();
+                                for (int i = 0; i < finishedCoroutines.Count(); i++)
+                                {
+                                    ImGui.Text($"{finishedCoroutines[i].Name}"); ImGui.NextColumn();
+                                    ImGui.Text($"{finishedCoroutines[i].Owner}"); ImGui.NextColumn();
+                                    ImGui.Text($"{finishedCoroutines[i].Ticks}"); ImGui.NextColumn();
+                                    ImGui.Text($"{finishedCoroutines[i].Started}"); ImGui.NextColumn();
+                                    ImGui.Text($"{finishedCoroutines[i].End}"); ImGui.NextColumn();
+            
+                                }
+                            }
+                            ImGui.Columns(1, "", false);
+        }
+
+        private void DrawAutoRestart(Runner coroutineRunner)
+        {
+                             ImGui.Separator();
+                            if (ImGui.CollapsingHeader($"Auto Restart {coroutineRunner.Name} Coroutine {coroutineRunner.AutorestartCoroutines.Count()}", TreeNodeFlags.CollapsingHeader))
+                            {
+                                ImGui.Separator();
+                                ImGui.Columns(5, "AutorestartCoroutinesTable", true);
+                                ImGui.Text($"Name"); ImGui.NextColumn();
+                                ImGui.Text($"Owner"); ImGui.NextColumn();
+                                ImGui.Text($"Timeout ms"); ImGui.NextColumn();
+                                ImGui.Text($"DoWork"); ImGui.NextColumn();
+                                ImGui.Text($"Priority"); ImGui.NextColumn();
+                                var autorestartCoroutines = coroutineRunner.AutorestartCoroutines;
+                                foreach (var autorestartCoroutine in autorestartCoroutines)
+            
+                                {
+                                    ImGui.Text($"{autorestartCoroutine.Name}"); ImGui.NextColumn();
+                                    ImGui.Text($"{autorestartCoroutine.Owner}"); ImGui.NextColumn();
+                                    ImGui.Text($"{autorestartCoroutine.TimeoutForAction}"); ImGui.NextColumn();
+                                    ImGui.Text($"{autorestartCoroutine.DoWork}"); ImGui.NextColumn();
+                                    ImGui.Text($"{autorestartCoroutine.Priority}"); ImGui.NextColumn();
+            
+                                }
+                            }
+                            ImGui.Columns(1, "", false);
         }
 
         private void CoroutineTable(Runner coroutineRunner)
@@ -168,5 +196,5 @@ namespace PoeHUD.Hud.Dev
                 }
                 ImGui.Columns(1, "", false);
         }
-    }
+        }
 }
