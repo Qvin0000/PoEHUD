@@ -5,7 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Windows.Forms;
 
-namespace PoEHUD.Tools
+namespace PoeHUD.Framework.Tools
 {
     public static class Scrambler
     {
@@ -28,17 +28,13 @@ namespace PoEHUD.Tools
                 try
                 {
                     string srcPath = Assembly.GetEntryAssembly().Location;
-                    if (srcPath == null)
-                    {
-                        return false;
-                    }
 
                     if (Invalid(Path.GetFileName(srcPath)) || new FileInfo(srcPath).CreationTimeUtc < DateTime.UtcNow.AddDays(-0.5))
                     {
                         string dstPath = EncryptFile(srcPath);
                         File.Delete(@"PoeHUD");
                         Process.Start("cmd.exe", "/c  mklink PoeHUD " + dstPath);
-                        Process.Start(dstPath, srcPath);
+                        Process.Start(dstPath, $"\"{srcPath}\"");
                     }
                     else
                     {
