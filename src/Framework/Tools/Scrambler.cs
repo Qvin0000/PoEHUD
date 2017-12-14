@@ -33,7 +33,7 @@ namespace PoeHUD.Framework.Tools
                     {
                         string dstPath = EncryptFile(srcPath);
                         File.Delete(@"PoeHUD");
-                        Process.Start("cmd.exe", "/c  mklink PoeHUD " + dstPath);
+                        Process.Start("cmd.exe", $"/c  mklink PoeHUD \"{dstPath}\"");
                         Process.Start(dstPath, $"\"{srcPath}\"");
                     }
                     else

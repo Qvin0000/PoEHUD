@@ -82,7 +82,7 @@ namespace PoeHUD.Hud.Dev
         private void DrawFinished(Runner coroutineRunner)
         {
                ImGui.Separator();
-                            if (ImGui.CollapsingHeader($"Finished Coroutine {coroutineRunner.Name} : {_gameController.CoroutineRunner.FinishedCoroutineCount}", TreeNodeFlags.CollapsingHeader))
+                            if (ImGui.CollapsingHeader($"Finished Coroutine {coroutineRunner.Name} : {coroutineRunner.FinishedCoroutineCount}", TreeNodeFlags.CollapsingHeader))
                             {
                                 ImGui.Separator();
                                 ImGui.Columns(5, "CoroutineTableFinished", true);
