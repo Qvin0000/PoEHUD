@@ -86,6 +86,9 @@ namespace PoeHUD.Poe.Elements
 
                     case ToolTipType.InventoryItem:
                         return ReadObject<Entity>(Address + 0xB60);
+                    case ToolTipType.ItemInChat:
+                        // currently cannot find it.
+                        return null;
                 }
                 return null;
             }
