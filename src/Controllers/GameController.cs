@@ -93,7 +93,6 @@ namespace PoeHUD.Controllers
             float updateRate = 1f / 60f;
             float loopLimit = 1;
             int updateAreaLimit = 100;
-            int updateEntityLimit = 50;
             int updateIngameState = 100;
             int deltaError = 500;
 
@@ -101,8 +100,7 @@ namespace PoeHUD.Controllers
 
             var updateCoroutine = new Coroutine(MainCoroutineAction, 250, nameof(GameController) ,"$#Main#$") {Priority = CoroutinePriority.Critical};
             var updateArea = (new Coroutine(() => { Area.RefreshState(); }, updateAreaLimit, nameof(GameController),"Update area") {Priority = CoroutinePriority.High});
-            var updateEntity = (new Coroutine(() => { EntityListWrapper.RefreshState(); }, updateEntityLimit,nameof(GameController), "Update Entity"){Priority = CoroutinePriority.High});
-           var updateGameState = (new Coroutine(() => { 
+            var updateGameState = (new Coroutine(() => { 
                InGame = InGameReal;
                 IsForeGroundCache = Performance.AlwaysForeground || WinApi.IsForegroundWindow(Window.Process.MainWindowHandle);
                Cache.ForceUpdateWindowCache();
@@ -115,7 +113,6 @@ namespace PoeHUD.Controllers
                 skipTicksRender = 1000f/Performance.RenderLimit;
                 Cache.Enable = Performance.Cache;
                 updateAreaLimit = Performance.UpdateAreaLimit;
-                updateEntityLimit = Performance.UpdateEntityDataLimit;
                 updateIngameState = Performance.UpdateIngemeStateLimit;
                 DeltaGraph = new float[Performance.RenderLimit*5];
                 Performance.UpdateEntityDataLimit.OnValueChanged += () =>
@@ -140,7 +137,6 @@ namespace PoeHUD.Controllers
                 };
             }
             updateArea.AutoRestart(CoroutineRunner).Run();
-            updateEntity.AutoRestart(CoroutineRunner).Run();
             sw.Restart();
             CoroutineRunnerParallel.RunPerLoopIter = 1;
             updateCoroutine.Run();
