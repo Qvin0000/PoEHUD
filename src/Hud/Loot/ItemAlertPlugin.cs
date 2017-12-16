@@ -35,7 +35,6 @@ namespace PoeHUD.Hud.Loot
         private PoeFilterVisitor visitor;
         public static bool holdKey;
         private readonly SettingsHub settingsHub;
-        Coroutine coroutine;
         public ItemAlertPlugin(GameController gameController, Graphics graphics, ItemAlertSettings settings, SettingsHub settingsHub)
             : base(gameController, graphics, settings)
         {
@@ -52,30 +51,6 @@ namespace PoeHUD.Hud.Loot
                 PoeFilterInit(settings.FilePath);
                 (new Coroutine(RestartParseItemsAfterFilterChange(), nameof(ItemAlertPlugin), "Check items after filter change")).Run();
             };
-
-            coroutine = (new Coroutine(() =>
-                {
-                    if (!GameController.Area.CurrentArea.IsTown)
-                    {
-                        var entityWrappers = GameController.EntityListWrapper.Entities.ToList();
-                        foreach (var entity in entityWrappers)
-                        {
-                            if (entity == null) continue;
-                            if (currentAlerts.ContainsKey(entity) || !entity.HasComponent<WorldItem>() ||
-                                (!Settings.Alternative || string.IsNullOrEmpty(Settings.FilePath))) continue;
-                            IEntity item = entity.GetComponent<WorldItem>().ItemEntity;
-                            var vis = GameController.Game.IngameState.IngameUi.ItemsOnGroundLabels
-                                .FirstOrDefault(x =>
-                                    x.ItemOnGround.GetComponent<WorldItem>().ItemEntity.Path == item.Path);
-                            if (vis == null || !vis.IsVisible) continue;
-                            var result = visitor.Visit(item);
-                            if (result == null) continue;
-                            AlertDrawStyle drawStyle = result;
-                            PrepareForDrawingAndPlaySound(entity, drawStyle);
-                        }
-                    }
-                }, new WaitRender((long) (GameController.Performance.RenderLimit * 0.75f)), nameof(ItemAlertPlugin),
-                "Check items on ground")).AutoRestart(GameController.CoroutineRunner).Run();
         }
 
 
@@ -163,13 +138,11 @@ namespace PoeHUD.Hud.Loot
             }
             if (!Settings.Enable)
             {
-                coroutine.Pause();
                 return;
             }
 
             if (Settings.Enable)
             {
-                coroutine.Resume();
                 Positioned pos = GameController.Player.GetComponent<Positioned>();
                 if (pos == null)
                     return;
@@ -325,20 +298,14 @@ namespace PoeHUD.Hud.Loot
             if (Settings.Enable && entity != null && !GameController.Area.CurrentArea.IsTown
                 && !currentAlerts.ContainsKey(entity) && entity.HasComponent<WorldItem>())
             {
-
                 IEntity item = entity.GetComponent<WorldItem>().ItemEntity;
-                var vis = GameController.Game.IngameState.IngameUi.ItemsOnGroundLabels.FirstOrDefault(x =>
-                    x.ItemOnGround.GetComponent<WorldItem>().ItemEntity.Path == item.Path);
                 if (Settings.Alternative && !string.IsNullOrEmpty(Settings.FilePath))
                 {
-                    if (vis != null && vis.IsVisible)
+                    var result = visitor.Visit(item);
+                    if (result != null)
                     {
-                        var result = visitor.Visit(item);
-                        if (result != null)
-                        {
-                            AlertDrawStyle drawStyle = result;
-                            PrepareForDrawingAndPlaySound(entity, drawStyle);
-                        }
+                        AlertDrawStyle drawStyle = result;
+                        PrepareForDrawingAndPlaySound(entity, drawStyle);
                     }
                 }
                 else
