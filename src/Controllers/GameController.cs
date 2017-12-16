@@ -140,11 +140,7 @@ namespace PoeHUD.Controllers
                 };
             }
             updateArea.AutoRestart(CoroutineRunner).Run();
-            //Sometimes parallel maybe unstable need testing
-            if (Performance?.ParallelEntityUpdate)
-                updateEntity.AutoRestart(CoroutineRunnerParallel).RunParallel();
-            else
-                updateEntity.AutoRestart(CoroutineRunner).Run();
+            updateEntity.AutoRestart(CoroutineRunner).Run();
             sw.Restart();
             CoroutineRunnerParallel.RunPerLoopIter = 1;
             updateCoroutine.Run();
