@@ -42,19 +42,22 @@ namespace PoeHUD.Models
         public Entity InternalEntity => internalEntity.Address == 0 ? null : internalEntity;
 
         public string Path { get; }
-        public bool IsValid => internalEntity.IsValid && IsInList && cachedId == internalEntity.Id;
+        public bool IsValid =>  IsInList && cachedId == internalEntity.Id && internalEntity.IsValid;
         public long Address => internalEntity.Address;
         public long Id => cachedId;
         public bool IsHostile => internalEntity.IsHostile;
         public long LongId { get; }
         public bool IsAlive => GetComponent<Life>().CurHP > 0;
-
+        Positioned _p;
+        Render _render;
         public Vector3 Pos
         {
             get
             {
-                var p = GetComponent<Positioned>();
-                return new Vector3(p.X, p.Y, GetComponent<Render>().Z);
+               
+                if(_p==null) _p = GetComponent<Positioned>();
+                if(_render==null) _render = GetComponent<Render>();
+                return new Vector3(_p.X, _p.Y, _render.Z);
             }
         }
 

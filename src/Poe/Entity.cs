@@ -6,9 +6,12 @@ namespace PoeHUD.Poe
 {
     public sealed class Entity : RemoteMemoryObject, IEntity
     {
-        private long ComponentLookup => M.ReadLong(Address, 0x48, 0x30);
-        private long ComponentList => M.ReadLong(Address + 0x8);
-        public string Path => M.ReadStringU(M.ReadLong(Address, 0x20));
+        private long _componentLookup;
+        private long _componentList;
+        private long ComponentLookup =>  _componentLookup==0 ?_componentLookup= M.ReadLong(Address, 0x48, 0x30) : _componentLookup;
+        private long ComponentList => _componentList==0 ? _componentList = M.ReadLong(Address + 0x8) : _componentList;
+        private string _path;
+        public string Path => _path ?? (_path= M.ReadStringU(M.ReadLong(Address, 0x20)));
         public bool IsValid => M.ReadInt(Address, 0x20, 0) == 0x65004D;
 
         public long Id => (long)M.ReadInt(Address + 0x40) << 32 ^ Address;
@@ -17,9 +20,8 @@ namespace PoeHUD.Poe
         /// <summary>
         /// 0x65004D = "Me"(4 bytes) from word Metadata
         /// </summary>
-
-
-        public bool IsHostile => (M.ReadByte(M.ReadLong(Address + 0x50) + 0x130) & 1) == 0;
+        private bool? _isHostile;
+        public bool IsHostile => (bool) (_isHostile ?? (_isHostile = ((M.ReadByte(M.ReadLong(Address + 0x50) + 0x130) & 1) == 0)));
 
         public bool HasComponent<T>() where T : Component, new()
         {

@@ -1,6 +1,7 @@
 using PoeHUD.Poe.RemoteMemoryObjects;
 using System;
 using System.Collections.Generic;
+using PoeHUD.Controllers;
 
 namespace PoeHUD.Poe.Components
 {
@@ -8,17 +9,68 @@ namespace PoeHUD.Poe.Components
     {
         public int MaxHP => Address != 0 ? M.ReadInt(Address + 0x50) : 1;
         public int CurHP => Address != 0 ? M.ReadInt(Address + 0x54) : 1;
-        public int ReservedFlatHP => Address != 0 ? M.ReadInt(Address + 0x5C) : 0;
-        public int ReservedPercentHP => Address != 0 ? M.ReadInt(Address + 0x60) : 0;
+        public int ReservedFlatHP
+        {
+            get
+            {
+                Experimental();
+                return _reservedFlatHp;
+            }
+        }
+
+        public int ReservedPercentHP
+        {
+            get
+            {
+                Experimental();
+                return _reservedPercentHp;
+            }
+        }
+
         public int MaxMana => Address != 0 ? M.ReadInt(Address + 0x88) : 1;
         public int CurMana => Address != 0 ? M.ReadInt(Address + 0x8C) : 1;
-        public int ReservedFlatMana => Address != 0 ? M.ReadInt(Address + 0x94) : 0;
-        public int ReservedPercentMana => Address != 0 ? M.ReadInt(Address + 0x98) : 0;
+        public int ReservedFlatMana
+        {
+            get
+            {
+                Experimental();
+                return _reservedFlatMana;
+            }
+        }
+
+        public int ReservedPercentMana
+        {
+            get
+            {
+                Experimental();
+                return _reservedPercentMana;
+            }
+        }
+
         public int MaxES => Address != 0 ? M.ReadInt(Address + 0xB8) : 0;
         public int CurES => Address != 0 ? M.ReadInt(Address + 0xBC) : 0;
         public float HPPercentage => CurHP / (float)(MaxHP - ReservedFlatHP - Math.Round(ReservedPercentHP * 0.01 * MaxHP));
         public float MPPercentage => CurMana / (float)(MaxMana - ReservedFlatMana - Math.Round(ReservedPercentMana * 0.01 * MaxMana));
 
+
+        private long lastTimeUpdate = 0;
+        private int _reservedFlatHp;
+        private int _reservedPercentHp;
+        private int _reservedFlatMana;
+        private int _reservedPercentMana;
+
+        void Experimental()
+        {
+            if (GameController.Instance.MainTimer.ElapsedMilliseconds - lastTimeUpdate > 1000)
+            {
+                lastTimeUpdate = GameController.Instance.MainTimer.ElapsedMilliseconds;
+                _reservedFlatHp=Address != 0 ? M.ReadInt(Address + 0x5C) : 0;
+                _reservedPercentHp = Address != 0 ? M.ReadInt(Address + 0x60) : 0;
+                _reservedFlatMana = Address != 0 ? M.ReadInt(Address + 0x94) : 0;
+                _reservedPercentMana = Address != 0 ? M.ReadInt(Address + 0x98) : 0;
+            }
+        }
+        
         public float ESPercentage
         {
             get
