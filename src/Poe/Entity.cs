@@ -6,10 +6,10 @@ namespace PoeHUD.Poe
 {
     public sealed class Entity : RemoteMemoryObject, IEntity
     {
-        private long _componentLookup;
-        private long _componentList;
-        private long ComponentLookup =>  _componentLookup==0 ?_componentLookup= M.ReadLong(Address, 0x48, 0x30) : _componentLookup;
-        private long ComponentList => _componentList==0 ? _componentList = M.ReadLong(Address + 0x8) : _componentList;
+        private long _componentLookup = -1;
+        private long _componentList =-1;
+        private long ComponentLookup =>  _componentLookup==-1 ?_componentLookup= M.ReadLong(Address, 0x48, 0x30) : _componentLookup;
+        private long ComponentList => _componentList==-1 ? _componentList = M.ReadLong(Address + 0x8) : _componentList;
         private string _path;
         public string Path => _path ?? (_path= M.ReadStringU(M.ReadLong(Address, 0x20)));
         public bool IsValid => M.ReadInt(Address, 0x20, 0) == 0x65004D;

@@ -39,6 +39,9 @@ namespace PoeHUD.Poe.RemoteMemoryObjects
                     {
                         long address = M.ReadLong(nextAddr + 0x28);
                         var entity = GetObject<Entity>(address);
+                        if(!entity.IsValid) continue;
+                        //cache path
+                        if(entity.Path.Length==0) continue;
                         list.Add(EntityID, entity);
                     }
                     queue.Enqueue(M.ReadLong(nextAddr));
