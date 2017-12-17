@@ -17,6 +17,7 @@ using SharpDX;
 using SharpDX.Direct3D9;
 using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -32,9 +33,11 @@ namespace PoeHUD.Hud.Loot
         private readonly HashSet<CraftingBase> craftingBases;
         private readonly HashSet<string> currencyNames;
         private Dictionary<long, ItemsOnGroundLabelElement> currentLabels;
+        private ConcurrentQueue<EntityWrapper> parallelWork;
         private PoeFilterVisitor visitor;
         public static bool holdKey;
         private readonly SettingsHub settingsHub;
+        Coroutine coroutine;
         public ItemAlertPlugin(GameController gameController, Graphics graphics, ItemAlertSettings settings, SettingsHub settingsHub)
             : base(gameController, graphics, settings)
         {
@@ -42,6 +45,7 @@ namespace PoeHUD.Hud.Loot
             playedSoundsCache = new HashSet<long>();
             currentAlerts = new Dictionary<EntityWrapper, AlertDrawStyle>();
             currentLabels = new Dictionary<long, ItemsOnGroundLabelElement>();
+            parallelWork = new ConcurrentQueue<EntityWrapper>();
             currencyNames = LoadCurrency();
             craftingBases = LoadCraftingBases();
             GameController.Area.OnAreaChange += OnAreaChange;
@@ -51,6 +55,39 @@ namespace PoeHUD.Hud.Loot
                 PoeFilterInit(settings.FilePath);
                 (new Coroutine(RestartParseItemsAfterFilterChange(), nameof(ItemAlertPlugin), "Check items after filter change")).Run();
             };
+
+            (new Coroutine(() =>
+            {
+
+                while (parallelWork.TryDequeue(out var entity))
+                {
+                    IEntity item = entity.GetComponent<WorldItem>().ItemEntity;
+                    if (Settings.Alternative && !string.IsNullOrEmpty(Settings.FilePath))
+                    {
+                        {
+                            var result = visitor.Visit(item);
+                            if (result != null)
+                            {
+                                AlertDrawStyle drawStyle = result;
+                                PrepareForDrawingAndPlaySound(entity, drawStyle);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        ItemUsefulProperties props = initItem(item);
+                        if (props == null)
+                            return;
+
+                        if (props.ShouldAlert(currencyNames, Settings))
+                        {
+                            AlertDrawStyle drawStyle = props.GetDrawStyle();
+                            PrepareForDrawingAndPlaySound(entity, drawStyle);
+                        }
+                        Settings.Alternative.Value = false;
+                    }
+                }
+            }, new WaitTime(50), nameof(ItemAlertPlugin), "Parse visit parallel") {Priority = CoroutinePriority.High}).AutoRestart(gameController.CoroutineRunnerParallel).RunParallel();
         }
 
 
@@ -164,7 +201,7 @@ namespace PoeHUD.Hud.Loot
                     }
                 }
 
-                var alerts = currentAlerts.Where(x => x.Key != null && x.Key.Address != 0 && x.Key.IsValid).ToArray();
+                var alerts = currentAlerts.Where(x => x.Key != null && x.Key.Address != 0 && x.Key.IsValid).ToList();
                 foreach (KeyValuePair<EntityWrapper, AlertDrawStyle> kv in alerts)
                 {
                     //
@@ -298,29 +335,7 @@ namespace PoeHUD.Hud.Loot
             if (Settings.Enable && entity != null && !GameController.Area.CurrentArea.IsTown
                 && !currentAlerts.ContainsKey(entity) && entity.HasComponent<WorldItem>())
             {
-                IEntity item = entity.GetComponent<WorldItem>().ItemEntity;
-                if (Settings.Alternative && !string.IsNullOrEmpty(Settings.FilePath))
-                {
-                    var result = visitor.Visit(item);
-                    if (result != null)
-                    {
-                        AlertDrawStyle drawStyle = result;
-                        PrepareForDrawingAndPlaySound(entity, drawStyle);
-                    }
-                }
-                else
-                {
-                    ItemUsefulProperties props = initItem(item);
-                    if (props == null)
-                        return;
-
-                    if (props.ShouldAlert(currencyNames, Settings))
-                    {
-                        AlertDrawStyle drawStyle = props.GetDrawStyle();
-                        PrepareForDrawingAndPlaySound(entity, drawStyle);
-                    }
-                    Settings.Alternative.Value = false;
-                }
+                parallelWork.Enqueue(entity);
             }
         }
 
@@ -338,7 +353,6 @@ namespace PoeHUD.Hud.Loot
 
         protected override void OnEntityRemoved(EntityWrapper entity)
         {
-            base.OnEntityRemoved(entity);
             currentAlerts.Remove(entity);
             currentLabels.Remove(entity.Address);
         }
