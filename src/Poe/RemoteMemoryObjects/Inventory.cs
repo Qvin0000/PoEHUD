@@ -18,7 +18,6 @@ namespace PoeHUD.Poe.RemoteMemoryObjects
             for (int j = 1; j < InventoryList.InventoryCount; j++)
                 if (Game.IngameState.IngameUi.InventoryPanel[(InventoryIndex)j].Address == Address)
                     return InventoryType.PlayerInventory;
-
             switch (this.AsObject<Element>().Parent.ChildCount)
             {
                 case 0x6f:
@@ -26,6 +25,8 @@ namespace PoeHUD.Poe.RemoteMemoryObjects
                 case 0x36:
                     return InventoryType.CurrencyStash;
                 case 0x05:
+                    if (TotalBoxesInInventoryRow == 0)
+                        return InventoryType.MapStash;
                     return InventoryType.DivinationStash;
                 case 0x01:
                     // Normal Stash and Quad Stash is same.
@@ -53,6 +54,8 @@ namespace PoeHUD.Poe.RemoteMemoryObjects
                     return this.AsObject<Element>().Parent;
                 case InventoryType.DivinationStash:
                     return GetObject<Element>(M.ReadLong(Address + Element.OffsetBuffers + 0x24, 0x08));
+                case InventoryType.MapStash:
+                    return this.AsObject<Element>().Parent.Parent;
                 default:
                     return null;
             }
