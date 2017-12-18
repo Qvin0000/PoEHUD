@@ -18,22 +18,22 @@ namespace PoeHUD.Hud.Dps
     {
         private readonly Dictionary<long, int> lastMonsters = new Dictionary<long, int>();
         private readonly Dictionary<long, int> Monsters = new Dictionary<long, int>();
+        private double MaxDps; 
+        private double CurrentDps; 
+        private double CurrentDmg; 
         private double[] damageMemory;
         private int damageMemoryIndex;
-        private int maxDps;
         readonly Coroutine dpsCoroutine;
-        int dps;
         int sumHp;
         public DpsMeterPlugin(GameController gameController, Graphics graphics, DpsMeterSettings settings)
             : base(gameController, graphics, settings)
         {
+            Settings.ClearNode.OnPressed += Clear; 
             GameController.Area.OnAreaChange += area =>
             {
-                maxDps = 0;
-                damageMemory = new double[1000/GameController.Performance.DpsUpdateTime];
-                lastMonsters.Clear();
+                Clear();
             };
-            damageMemory = new double[1000/GameController.Performance.DpsUpdateTime];
+            damageMemory = new double[10];
 
           
             dpsCoroutine = (new Coroutine(() => { 
@@ -43,23 +43,36 @@ namespace PoeHUD.Hud.Dps
                     {
                         damageMemoryIndex = 0;
                     }
-                    damageMemory[damageMemoryIndex] = CalculateDps(); 
-                    double sum = 0;
-                    foreach (var d in damageMemory)
-                        sum += d;
-                    dps = (int)sum;
-                    maxDps = Math.Max(dps, maxDps);
+                    var curDmg = CalculateDps(Settings.CalcAOE); 
+                    damageMemory[damageMemoryIndex] = curDmg; 
+                    if (curDmg > 0) 
+                    { 
+                        CurrentDmg = curDmg; 
+                        CurrentDps = damageMemory.Sum(); 
+                        MaxDps = Math.Max(CurrentDps, MaxDps); 
+                    } 
                     if(settings.ShowInformationAround)
                         sumHp = Monsters.Sum(pair => pair.Value);
-                }, new WaitTime(GameController.Performance.DpsUpdateTime), nameof(DpsMeterPlugin), "Calculate DPS"){Priority = CoroutinePriority.High})
+                }, new WaitTime(100), nameof(DpsMeterPlugin), "Calculate DPS"){Priority = CoroutinePriority.High})
                 .AutoRestart(GameController.CoroutineRunner).Run();
         }
+
+        private void Clear()
+        {
+            damageMemory = new double[1000/GameController.Performance.DpsUpdateTime];
+            MaxDps = 0;
+            CurrentDps = 0;
+            CurrentDmg = 0;
+            lastMonsters.Clear();
+
+        }
+
         public override void Render()
         {
             try
             {
                 base.Render();
-                if (!Settings.Enable || WinApi.IsKeyDown(Keys.F10) ||
+                if (!Settings.Enable ||
                     !Settings.ShowInTown && GameController.Area.CurrentArea.IsTown ||
                     !Settings.ShowInTown && GameController.Area.CurrentArea.IsHideout)
                 {
@@ -69,8 +82,6 @@ namespace PoeHUD.Hud.Dps
                 dpsCoroutine.Resume();
 
                 Vector2 position = StartDrawPointFunc();
-                string dpsText = dps + " dps" + Environment.NewLine;
-                string peakText = maxDps + " top dps " + Environment.NewLine;
                 string monsterAround = "";
                 string monsterAroundHp = "";
                 if (Settings.ShowInformationAround)
@@ -78,8 +89,8 @@ namespace PoeHUD.Hud.Dps
                  monsterAround = Monsters.Count + " monsters" + Environment.NewLine;
                  monsterAroundHp = sumHp + " hp" + Environment.NewLine;
                 }
-                Size2 dpsSize = Graphics.DrawText(dpsText, Settings.DpsTextSize, position, Settings.DpsFontColor, FontDrawFlags.Right);
-                Size2 peakSize = Graphics.DrawText(peakText, Settings.PeakDpsTextSize, position.Translate(0, dpsSize.Height), Settings.PeakFontColor,FontDrawFlags.Right);
+                Size2 dpsSize = Graphics.DrawText(CurrentDmg + " dps", Settings.DpsTextSize, position, Settings.DpsFontColor, FontDrawFlags.Right); 
+                Size2 peakSize = Graphics.DrawText(MaxDps + " top dps", Settings.PeakDpsTextSize, position.Translate(0, dpsSize.Height), Settings.PeakFontColor, FontDrawFlags.Right);
                 int height = dpsSize.Height + peakSize.Height;
                 int width = Math.Max(1, dpsSize.Width);
                 if (Settings.ShowInformationAround)
@@ -109,34 +120,33 @@ namespace PoeHUD.Hud.Dps
             }
         }
 
-        private double CalculateDps()
+        private double CalculateDps(bool aoe)
         {
-                int totalDamage = 0;
-            foreach (EntityWrapper monster in GameController.Entities.ToArray())
+            int totalDamage = 0;
+            foreach (EntityWrapper monster in GameController.Entities.Where(x => x.HasComponent<Monster>() && x.IsHostile))
             {
-                if(monster ==null) continue;
-                if (monster.HasComponent<Monster>() && monster.IsHostile)
+                var life = monster.GetComponent<Life>();
+                int hp = monster.IsAlive ? life.CurHP + life.CurES : 0;
+                if (hp > -1000000 && hp < 10000000)
                 {
-                    var life = monster.GetComponent<Life>();
-                    int hp = monster.IsAlive ? life.CurHP + life.CurES : 0;
-                    if (hp > -1000000 && hp < 10000000)
+                    int lastHP;
+                    if (lastMonsters.TryGetValue(monster.Id, out lastHP))
                     {
-                        int lastHP;
-                        if (lastMonsters.TryGetValue(monster.Id, out lastHP))
+                        if (lastHP != hp)
                         {
-                            if (lastHP != hp)
-                            {
+                            if (aoe)
                                 totalDamage += lastHP - hp;
-                            }
+                            else
+                                totalDamage = Math.Max(totalDamage, lastHP - hp);
                         }
-                        lastMonsters[monster.Id] = hp;
-                        if(hp>0)
-                        Monsters[monster.Id] = hp;
                     }
+                    lastMonsters[monster.Id] = hp;
+                    if (hp > 0)
+                        Monsters[monster.Id] = hp;
                 }
             }
-
             return totalDamage < 0 ? 0 : totalDamage;
         }
     }
+    
 }

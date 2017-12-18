@@ -15,6 +15,8 @@ namespace PoeHUD.Hud.Dps
             PeakFontColor = new ColorBGRA(220, 190, 130, 255);
             BackgroundColor = new ColorBGRA(0, 0, 0, 255);
             ShowInformationAround = true;
+            ClearNode = new ButtonNode(); 
+            CalcAOE = false; 
         }
 
         public ToggleNode ShowInTown { get; set; }
@@ -24,5 +26,7 @@ namespace PoeHUD.Hud.Dps
         public ColorNode PeakFontColor { get; set; }
         public ColorNode BackgroundColor { get; set; }
         public ToggleNode ShowInformationAround { get; set; }
+        public ButtonNode ClearNode { get; set; } 
+        public ToggleNode CalcAOE { get; set; } 
     }
 }
