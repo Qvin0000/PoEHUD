@@ -1,6 +1,7 @@
 using System;
 using PoeHUD.Models.Interfaces;
 using System.Collections.Generic;
+using PoeHUD.Controllers;
 
 namespace PoeHUD.Poe
 {
@@ -12,11 +13,30 @@ namespace PoeHUD.Poe
         private long ComponentList => _componentList==-1 ? _componentList = M.ReadLong(Address + 0x8) : _componentList;
         private string _path;
         public string Path => _path ?? (_path= M.ReadStringU(M.ReadLong(Address, 0x20)));
-        public bool IsValid => M.ReadInt(Address, 0x20, 0) == 0x65004D;
+        private bool _isValid;
+        public bool IsValid
+        {
+            get
+            {
+                Experimental();
+                return _isValid;
+            }
+        }
 
-        public long Id => (long)M.ReadInt(Address + 0x40) << 32 ^ Address;
+        private long? _id;
+        public long Id => (long) (_id ?? (_id = ((long)M.ReadInt(Address + 0x40) << 32 ^ Address)));
         public int InventoryId => M.ReadInt(Address + 0x58);
 
+      
+        private long _nextUpdateTime;
+        void Experimental()
+        {
+            if (GameController.Instance.MainTimer.ElapsedMilliseconds > _nextUpdateTime)
+            {
+                _nextUpdateTime = GameController.Instance.MainTimer.ElapsedMilliseconds + 50;
+                _isValid = M.ReadInt(Address, 0x20, 0) == 0x65004D;
+            }
+        }
         /// <summary>
         /// 0x65004D = "Me"(4 bytes) from word Metadata
         /// </summary>
