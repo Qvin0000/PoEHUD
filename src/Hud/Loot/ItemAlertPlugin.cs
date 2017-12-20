@@ -201,10 +201,14 @@ namespace PoeHUD.Hud.Loot
                     }
                 }
 
-                var alerts = currentAlerts.Where(x => x.Key != null && x.Key.Address != 0 && x.Key.IsValid).ToList();
-                foreach (KeyValuePair<EntityWrapper, AlertDrawStyle> kv in alerts)
+                var alerts = currentAlerts.ToList();
+                for (var i = 0; i < alerts.Count; i++)
                 {
-                    //
+                    KeyValuePair<EntityWrapper, AlertDrawStyle> kv = alerts[i];
+                    if (kv.Key == null) continue;
+                    if (kv.Key.Address == 0) continue;
+                    if (!kv.Key.IsValid) continue;
+//
                     //                       _oo0oo_
                     //                      o8888888o
                     //                      88" . "88
@@ -230,7 +234,7 @@ namespace PoeHUD.Hud.Loot
                     string text = "";
                     if (true)
                     {
-                        text = kv.Value.Text; 
+                        text = kv.Value.Text;
                     }
                     else
                     {
@@ -274,7 +278,7 @@ namespace PoeHUD.Hud.Loot
                                     if (Settings.DimOtherByPercentToggle)
                                     {
                                         // edit values to new ones
-                                        double ReduceByPercent = (double)Settings.DimOtherByPercent / 100;
+                                        double ReduceByPercent = (double) Settings.DimOtherByPercent / 100;
 
                                         TextColor = ReduceNumbers(TextColor, ReduceByPercent);
                                         BorderColor = ReduceNumbers(BorderColor, ReduceByPercent);
