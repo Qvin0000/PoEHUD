@@ -30,6 +30,7 @@ namespace PoeHUD.Hud.Loot
     {
         private readonly HashSet<long> playedSoundsCache;
         private readonly Dictionary<EntityWrapper, AlertDrawStyle> currentAlerts;
+        private IEnumerable<KeyValuePair<EntityWrapper, AlertDrawStyle>> currentAlertsRender;
         private readonly HashSet<CraftingBase> craftingBases;
         private readonly HashSet<string> currencyNames;
         private Dictionary<long, ItemsOnGroundLabelElement> currentLabels;
@@ -44,6 +45,7 @@ namespace PoeHUD.Hud.Loot
             this.settingsHub = settingsHub;
             playedSoundsCache = new HashSet<long>();
             currentAlerts = new Dictionary<EntityWrapper, AlertDrawStyle>();
+            currentAlertsRender = new List<KeyValuePair<EntityWrapper, AlertDrawStyle>>();
             currentLabels = new Dictionary<long, ItemsOnGroundLabelElement>();
             parallelWork = new ConcurrentQueue<EntityWrapper>();
             currencyNames = LoadCurrency();
@@ -87,6 +89,7 @@ namespace PoeHUD.Hud.Loot
                         Settings.Alternative.Value = false;
                     }
                 }
+                currentAlertsRender = new List<KeyValuePair<EntityWrapper, AlertDrawStyle>>(currentAlerts).Where(x=>x.Key.IsValid);
             }, new WaitTime(50), nameof(ItemAlertPlugin), "Parse visit parallel") {Priority = CoroutinePriority.High}).AutoRestart(gameController.CoroutineRunnerParallel).RunParallel();
         }
 
@@ -155,7 +158,6 @@ namespace PoeHUD.Hud.Loot
                 MessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
-
         public override void Dispose()
         {
             GameController.Area.OnAreaChange -= OnAreaChange;
@@ -200,11 +202,8 @@ namespace PoeHUD.Hud.Loot
                         }
                     }
                 }
-
-                var alerts = currentAlerts.ToList();
-                for (var i = 0; i < alerts.Count; i++)
+                foreach (var kv in currentAlertsRender)
                 {
-                    KeyValuePair<EntityWrapper, AlertDrawStyle> kv = alerts[i];
                     if (kv.Key == null) continue;
                     if (kv.Key.Address == 0) continue;
                     if (!kv.Key.IsValid) continue;
@@ -290,8 +289,10 @@ namespace PoeHUD.Hud.Loot
                                     }
 
                                     // Complete new KeyValuePair with new stuff
-                                    AlertDrawStyle ModifiedDrawStyle = new AlertDrawStyle(text, TextColor, kv.Value.BorderWidth, BorderColor, BackgroundColor, kv.Value.IconIndex);
-                                    KeyValuePair<EntityWrapper, AlertDrawStyle> NewKV = new KeyValuePair<EntityWrapper, AlertDrawStyle>(kv.Key, ModifiedDrawStyle);
+                                    AlertDrawStyle ModifiedDrawStyle = new AlertDrawStyle(text, TextColor,
+                                        kv.Value.BorderWidth, BorderColor, BackgroundColor, kv.Value.IconIndex);
+                                    KeyValuePair<EntityWrapper, AlertDrawStyle> NewKV =
+                                        new KeyValuePair<EntityWrapper, AlertDrawStyle>(kv.Key, ModifiedDrawStyle);
 
                                     position = DrawText(playerPos, position, BOTTOM_MARGIN, NewKV, text);
                                 }
@@ -345,6 +346,7 @@ namespace PoeHUD.Hud.Loot
 
         private void PrepareForDrawingAndPlaySound(EntityWrapper entity, AlertDrawStyle drawStyle)
         {
+            if (!entity.IsValid) return;
             currentAlerts.Add(entity, drawStyle);
             CurrentIcons[entity] = new MapIcon(entity, new HudTexture("currency.png", Settings.LootIconBorderColor ? drawStyle.BorderColor : drawStyle.TextColor), () => Settings.ShowItemOnMap, Settings.LootIcon);
 
