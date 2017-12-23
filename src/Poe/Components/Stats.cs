@@ -9,39 +9,60 @@ namespace PoeHUD.Poe.Components
 {
     public class Stats : Component
     {
-        public Dictionary<PlayerStats, int> AllStats => getAllStats();
-
-        private long lastUpdate;
-        Dictionary<PlayerStats, int> result  = new Dictionary<PlayerStats,int>();
-        private Dictionary<PlayerStats,int> getAllStats()
+        public Dictionary<PlayerStats, int> AllStats
         {
-            if (GameController.Instance.MainTimer.ElapsedMilliseconds > lastUpdate && Game.IngameState.Data.LocalPlayer.IsValid)
+            get
             {
-                lastUpdate = GameController.Instance.MainTimer.ElapsedMilliseconds + 100;
-                result = new Dictionary<PlayerStats, int>();
-                var ps = Enum.GetValues(typeof(PlayerStats));
-                foreach (PlayerStats s in ps)
-                {
-                    if (getStat(s, out var r))
-                    {
-                        result.Add(s, r);
-                    }
-                }
+                UpdateAllDates();
+                return result;
             }
-            return result;
         }
 
-        public bool getStat(PlayerStats key, out int value)
+        private int Timeout = 100;
+        private long nextUpdate;
+        Dictionary<PlayerStats, int> result = new Dictionary<PlayerStats, int>();
+
+
+   /*     public bool getStat(PlayerStats key, out int value)
         {
             long ptrStart = M.ReadLong(Address + 0x50);
             long ptrEnd = M.ReadLong(Address + 0x58);
-            for (long i = ptrStart; i < ptrEnd; i+=8)
+
+            for (long i = ptrStart; i < ptrEnd; i += 8)
             {
-                if (M.ReadInt(i) == (int)key)
+                if (M.ReadInt(i) == (int) key)
                 {
                     value = M.ReadInt(i + 0x04);
                     return true;
                 }
+            }
+            value = 0;
+            return false;
+        }*/
+
+        void UpdateAllDates()
+        {
+            if (GameController.Instance.MainTimer.ElapsedMilliseconds > nextUpdate)
+            {
+                nextUpdate = GameController.Instance.MainTimer.ElapsedMilliseconds + Timeout;
+                long ptrStart = M.ReadLong(Address + 0x50);
+                long ptrEnd = M.ReadLong(Address + 0x58);
+                var bytes = M.ReadBytes(ptrStart, (int) (ptrEnd - ptrStart));
+                var dict = new Dictionary<PlayerStats, int>();
+                for (int i = 0; i < bytes.Length; i += 8)
+                    dict[(PlayerStats) BitConverter.ToInt32(bytes, i)] = BitConverter.ToInt32(bytes, i + 0x04);
+                result = dict;
+            }
+        }
+
+
+        public bool getStat(PlayerStats key, out int value)
+        {
+            UpdateAllDates();
+            if (result.TryGetValue(key, out var res))
+            {
+                value = res;
+                return true;
             }
             value = 0;
             return false;
