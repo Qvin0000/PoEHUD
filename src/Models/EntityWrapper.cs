@@ -3,6 +3,7 @@ using PoeHUD.Models.Interfaces;
 using PoeHUD.Poe;
 using PoeHUD.Poe.Components;
 using System.Collections.Generic;
+using SharpDX;
 using Vector3 = SharpDX.Vector3;
 
 namespace PoeHUD.Models
@@ -22,7 +23,7 @@ namespace PoeHUD.Models
             gameController = Poe;
             internalEntity = entity;
             components = internalEntity.GetComponents();
-            if (gameController.Cache.Enable)
+            if (gameController.Performance.Cache.Enable)
             {
                 cacheComponents = new Dictionary<string, object>();
                 foreach (var component in components)
@@ -48,25 +49,36 @@ namespace PoeHUD.Models
         public bool IsHostile => internalEntity.IsHostile;
         public long LongId { get; }
         public bool IsAlive => GetComponent<Life>().CurHP > 0;
-        Positioned _p;
-        Render _render;
+  
+
+   
+        Render render;
         public Vector3 Pos
         {
             get
             {
                
-                if(_p==null) _p = GetComponent<Positioned>();
-                if(_render==null) _render = GetComponent<Render>();
-                return new Vector3(_p.X, _p.Y, _render.Z);
+          
+                if(render==null) render = GetComponent<Render>();
+                return new Vector3(render.X, render.Y, render.Z);
             }
         }
 
+        private Positioned _positioned;
+        public Vector2 GridPos
+        {
+            get
+            {
+                if (_positioned == null) _positioned = GetComponent<Positioned>();
+                return _positioned.GridPos;
+            }
+        }
 
     
         public T GetComponent<T>() where T : Component, new()
         {
             string name = typeof(T).Name;
-            if (gameController.Cache.Enable)
+            if (gameController.Performance.Cache.Enable)
             {
                 if (!cacheComponents.ContainsKey(name) || cacheComponents[name] == null)
                 {

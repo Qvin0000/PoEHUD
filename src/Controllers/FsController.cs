@@ -26,9 +26,10 @@ namespace PoeHUD.Controllers
             Tags = new TagsDat(mem, FindFile("Data/Tags.dat"));
             Stats = new StatsDat(mem, FindFile("Data/Stats.dat"));
             Mods = new ModsDat(mem, FindFile("Data/Mods.dat"), Stats, Tags);
+            files = null;
         }
             
-        public Dictionary<string, long> GetAllFiles()
+        private Dictionary<string, long> GetAllFiles()
         {
             var fileList = new Dictionary<string, long>();
             long fileRoot = mem.AddressOfProcess + mem.offsets.FileRoot;
@@ -46,7 +47,7 @@ namespace PoeHUD.Controllers
             return fileList;
         }
 
-        public long FindFile(string name)
+        private long FindFile(string name)
         {
             try
             {

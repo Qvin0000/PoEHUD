@@ -13,46 +13,31 @@ namespace PoeHUD.Poe.RemoteMemoryObjects
 {
     public class Camera : RemoteMemoryObject
     {
-        private int _width;
-        private int _height;
-        public int Width
-        {
-            get
-            {
-                Experimental();
-                return _width;
-            }
-        }
+   
+        public int Width => Game.Performance.ReadMemWithCache(M.ReadInt, Address + 0x4, Game.Performance.skipTicksRender);
 
-        public int Height
-        {
-            get
-            {
-                Experimental();
-                return _height;
-            }
-        }
+
+        public int Height => Game.Performance.ReadMemWithCache(M.ReadInt, Address + 0x8, Game.Performance.skipTicksRender);
+
 
         public float ZFar => M.ReadFloat(Address + 0x204);
         public Vector3 Position => new Vector3(M.ReadFloat(Address + 0x15C), M.ReadFloat(Address + 0x160), M.ReadFloat(Address + 0x164));
 
         //cameraarray 0x17c
-
-        private static Vector2 oldplayerCord;
-
-
-        private long lastUpdateTime = 0;
-        void Experimental()
+        private byte[] _readBytes;
+        private float _lastTimeUpdateMatrix;
+        byte[] GetMatrix()
         {
-            if (GameController.Instance.MainTimer.ElapsedMilliseconds - lastUpdateTime > 500)
+            if (Game.Performance.timer > _lastTimeUpdateMatrix)
             {
-                lastUpdateTime = GameController.Instance.MainTimer.ElapsedMilliseconds;
-                _width = M.ReadInt(Address + 0x4);
-                _height = M.ReadInt(Address + 0x8);
+                _lastTimeUpdateMatrix =  Game.Performance.GetWaitTime(Game.Performance.skipTicksRender*0.66f);
+                _readBytes = M.ReadBytes(Address + 0xE4, 0x40);
             }
 
+            return _readBytes;
         }
         
+        private static Vector2 oldplayerCord;
         public unsafe Vector2 WorldToScreen(Vector3 vec3, EntityWrapper entityWrapper)
         {
             Entity localPlayer = Game.IngameState.Data.LocalPlayer;
@@ -60,22 +45,20 @@ namespace PoeHUD.Poe.RemoteMemoryObjects
             bool isMoving = false;
             if (isplayer)
             {
-                isMoving = GameController.Instance.Cache.Enable
-                    ? GameController.Instance.Cache.Player.Actor.isMoving
-                    : localPlayer.GetComponent<Actor>().isMoving;
+                isMoving = entityWrapper.GetComponent<Actor>().isMoving;
             }
             var playerMoving = isplayer && isMoving;
             float x, y;
-            long addr = Address + 0xE4;
-            fixed (byte* numRef = M.ReadBytes(addr, 0x40))
+           
+            fixed (byte* numRef = GetMatrix())
             {
                 Matrix4x4 matrix = *(Matrix4x4*)numRef;
                 Vector4 cord = *(Vector4*)&vec3;
                 cord.W = 1;
                 cord = Vector4.Transform(cord, matrix);
                 cord = Vector4.Divide(cord, cord.W);
-                x = (cord.X + 1.0f) * 0.5f * _width;
-                y = (1.0f - cord.Y) * 0.5f * _height;
+                x = (cord.X + 1.0f) * 0.5f * Width;
+                y = (1.0f - cord.Y) * 0.5f * Height;
             }
             var resultCord = new Vector2(x, y);
             if (playerMoving)

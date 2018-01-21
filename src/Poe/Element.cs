@@ -13,15 +13,37 @@ namespace PoeHUD.Poe
         // then the rest is
 
         public int vTable => M.ReadInt(Address + 0);
-        public long ChildCount => (M.ReadLong(Address + 0x44 + OffsetBuffers) - M.ReadLong(Address + 0x3c + OffsetBuffers)) / 8;
-        public bool IsVisibleLocal => (M.ReadInt(Address + 0x94 + OffsetBuffers) & 1) == 1;
+
+        public long ChildCount =>
+        (Game.Performance.ReadMemWithCache(M.ReadLong, Address + 0x44 + OffsetBuffers, Game.Performance.meanLatency) -
+         Game.Performance.ReadMemWithCache(M.ReadLong, Address + 0x3c + OffsetBuffers, Game.Performance.meanLatency)) / 8;
+
+        public bool IsVisibleLocal =>
+            (Game.Performance.ReadMemWithCache(M.ReadInt, Address + 0x94 + OffsetBuffers, Game.Performance.meanLatency) & 1) == 1;
+
         public Element Root => ReadObject<Element>(Address + 0xC4 + OffsetBuffers);
-        public Element Parent => ReadObject<Element>(Address + 0xCC + OffsetBuffers);
-        public float X => M.ReadFloat(Address + 0xD4 + OffsetBuffers);
-        public float Y => M.ReadFloat(Address + 0xD8 + OffsetBuffers);
+
+         public Element Parent => ReadObject<Element>(Address + 0xCC + OffsetBuffers);
+
+        public float X => Game.Performance.ReadMemWithCache(M.ReadFloat, Address + 0xD4 + OffsetBuffers,
+            Game.Performance.skipTicksRender * 2);
+
+        public float Y => Game.Performance.ReadMemWithCache(M.ReadFloat, Address + 0xD8 + OffsetBuffers,
+            Game.Performance.skipTicksRender * 2);
+
+        public Element Tooltip => ReadObject<Element>(Address + 0x104 + OffsetBuffers);
         public float Scale => M.ReadFloat(Address + 0x1D0 + OffsetBuffers);
-        public float Width => M.ReadFloat(Address + 0x20C + OffsetBuffers);
-        public float Height => M.ReadFloat(Address + 0x210 + OffsetBuffers);
+        private float lastUpdate;
+        private float _width;
+        private float _height;
+
+        public float Width => Game.Performance.ReadMemWithCache(M.ReadFloat, Address + 0x20C + OffsetBuffers,
+            Game.Performance.skipTicksRender * 2);
+
+        public float Height => Game.Performance.ReadMemWithCache(M.ReadFloat, Address + 0x210 + OffsetBuffers,
+            Game.Performance.skipTicksRender * 2);
+
+        public bool isHighlighted => M.ReadByte(Address + 0x948) > 0;
 
         public bool IsVisible
         {
@@ -34,15 +56,16 @@ namespace PoeHUD.Poe
         {
             const int listOffset = 0x3C + OffsetBuffers;
             var list = new List<T>();
-            if (M.ReadLong(Address + listOffset + 8) == 0 || M.ReadLong(Address + listOffset) == 0 ||
-                ChildCount > 1000)
+            if (M.ReadLong(Address + listOffset + 8) == 0 || M.ReadLong(Address + listOffset) == 0 || ChildCount > 1000)
             {
                 return list;
             }
+
             for (int i = 0; i < ChildCount; i++)
             {
                 list.Add(GetObject<T>(M.ReadLong(Address + listOffset, i * 8)));
             }
+
             return list;
         }
 
@@ -58,6 +81,7 @@ namespace PoeHUD.Poe
                 hashSet.Add(parent);
                 parent = parent.Parent;
             }
+
             return list;
         }
 
@@ -70,6 +94,7 @@ namespace PoeHUD.Poe
                 num += current.X;
                 num2 += current.Y;
             }
+
             return new Vector2(num, num2);
         }
 
@@ -81,7 +106,6 @@ namespace PoeHUD.Poe
             float ratioFixMult = width / height / 1.6f;
             float xScale = width / 2560f / ratioFixMult;
             float yScale = height / 1600f;
-
             float num = (vPos.X + X) * xScale;
             float num2 = (vPos.Y + Y) * yScale;
             return new RectangleF(num, num2, xScale * Width, yScale * Height);
@@ -98,12 +122,15 @@ namespace PoeHUD.Poe
                     return null;
                 }
             }
+
             return poe_UIElement;
         }
 
         public Element GetChildAtIndex(int index)
         {
-            return index >= ChildCount ? null : GetObject<Element>(M.ReadLong(Address + 0x24 + OffsetBuffers, index * 8));
+            return index >= ChildCount
+                ? null
+                : GetObject<Element>(M.ReadLong(Address + 0x24 + OffsetBuffers, index * 8));
         }
     }
 }

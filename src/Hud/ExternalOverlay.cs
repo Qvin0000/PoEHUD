@@ -21,14 +21,14 @@ using SharpDX;
 using SharpDX.Windows;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using PoeHUD.Hud.Performance;
 using Color = System.Drawing.Color;
 using Graphics2D = PoeHUD.Hud.UI.Graphics;
 using Rectangle = System.Drawing.Rectangle;
-using System.Collections;
 using PoeHUD.Hud.Dev;
 
 namespace PoeHUD.Hud
@@ -37,16 +37,19 @@ namespace PoeHUD.Hud
     {
         private readonly SettingsHub settings;
         private readonly GameController gameController;
-        private readonly Func<bool> gameEnded;
+        private readonly Memory _memory;
         private readonly IntPtr gameHandle;
         private readonly List<IPlugin> plugins = new List<IPlugin>();
         private Graphics2D graphics;
 
-        public ExternalOverlay(GameController gameController, Func<bool> gameEnded)
+        public ExternalOverlay(Memory memory)
         {
+            _memory = memory;
             settings = SettingsHub.Load();
-            this.gameController = gameController;
-            this.gameEnded = gameEnded;
+            gameController = new GameController(_memory,settings.PerformanceSettings);
+#if DEBUG
+            Debug();
+#endif
             gameHandle = gameController.Window.Process.MainWindowHandle;
             SuspendLayout();
             Text = MathHepler.GetRandomWord(MathHepler.Randomizer.Next(7) + 5);
@@ -56,28 +59,28 @@ namespace PoeHUD.Hud
             ShowIcon = false;
             TopMost = true;
             ResumeLayout(false);
+            (new Coroutine(() =>
+            {
+                if (!_memory.IsInvalid())
+                {
+                    Rectangle gameSize = WinApi.GetClientRectangle(gameHandle);
+                    Bounds = gameSize;
+                }
+            }, new WaitTime(250), nameof(ExternalOverlay), "Check Game Window Size")
+            {
+                Priority = CoroutinePriority.Critical
+            }).AutoRestart(gameController.CoroutineRunnerParallel).RunParallel();
+            (new Coroutine(() => {  if (_memory.IsInvalid())
+            {
+                graphics.Dispose();
+                Close();
+            }}, new WaitTime(500), nameof(ExternalOverlay), "Check Game State")
+            {
+                Priority = CoroutinePriority.Critical
+            }).AutoRestart(gameController.CoroutineRunnerParallel).RunParallel();
             Load += OnLoad;
         }
-
-        private async void CheckGameState()
-        {
-            while (!gameEnded())
-            {
-                await Task.Delay(500);
-            }
-            graphics.Dispose();
-            Close();
-        }
-
-        private async void CheckGameWindow()
-        {
-            while (!gameEnded())
-            {
-                await Task.Delay(1000);
-                Rectangle gameSize = WinApi.GetClientRectangle(gameHandle);
-                Bounds = gameSize;
-            }
-        }
+       
 
         private IEnumerable<MapIcon> GatherMapIcons()
         {
@@ -105,26 +108,33 @@ namespace PoeHUD.Hud
             return new Vector2(clientRect.X - 5, clientRect.Y + 5);
         }
 
+        private Vector2 _getUnderCornerMap;
+        private float nextUpdateGetUnderCornerMap;
         private Vector2 GetUnderCornerMap()
         {
-            const int EPSILON = 1;
-            Element questPanel = gameController.Game.IngameState.IngameUi.QuestTracker;
-            Element gemPanel = gameController.Game.IngameState.IngameUi.GemLvlUpPanel;
-            RectangleF questPanelRect = questPanel.GetClientRect();
-            RectangleF gemPanelRect = gemPanel.GetClientRect();
-            RectangleF clientRect = gameController.Game.IngameState.IngameUi.Map.SmallMinimap.GetClientRect();
-            if (gemPanel.IsVisible && Math.Abs(gemPanelRect.Right - clientRect.Right) < EPSILON)
+            if (gameController.Game.MainTimer.ElapsedMilliseconds > nextUpdateGetUnderCornerMap)
             {
-                // gem panel is visible, add its height
-                clientRect.Height += gemPanelRect.Height;
-            }
-            if (questPanel.IsVisible && Math.Abs(gemPanelRect.Right - clientRect.Right) < EPSILON)
-            {
-                // quest panel is visible, add its height
-                clientRect.Height += questPanelRect.Height;
-            }
+                nextUpdateGetUnderCornerMap = gameController.Game.Performance.GetWaitTime(gameController.Game.Performance.updateIngameState);
+                const int EPSILON = 1;
+                Element questPanel = gameController.Game.IngameState.IngameUi.QuestTracker;
+                Element gemPanel = gameController.Game.IngameState.IngameUi.GemLvlUpPanel;
+                RectangleF questPanelRect = questPanel.GetClientRect();
+                RectangleF gemPanelRect = gemPanel.GetClientRect();
+                RectangleF clientRect = gameController.Game.IngameState.IngameUi.Map.SmallMinimap.GetClientRect();
+                if (gemPanel.IsVisible && Math.Abs(gemPanelRect.Right - clientRect.Right) < EPSILON)
+                {
+                    // gem panel is visible, add its height
+                    clientRect.Height += gemPanelRect.Height;
+                }
+                if (questPanel.IsVisible && Math.Abs(gemPanelRect.Right - clientRect.Right) < EPSILON)
+                {
+                    // quest panel is visible, add its height
+                    clientRect.Height += questPanelRect.Height;
+                }
 
-            return new Vector2(clientRect.X + clientRect.Width, clientRect.Y + clientRect.Height + 10);
+                 _getUnderCornerMap = new Vector2(clientRect.X + clientRect.Width, clientRect.Y + clientRect.Height + 10);
+            }
+            return _getUnderCornerMap;
         }
 
         private void OnClosing(object sender, FormClosingEventArgs e)
@@ -143,7 +153,6 @@ namespace PoeHUD.Hud
         {
             Bounds = WinApi.GetClientRectangle(gameHandle);
             WinApi.EnableTransparent(Handle, Bounds);
-            gameController.Performance = settings.PerformanceSettings;
             graphics = new Graphics2D(this, Bounds.Width, Bounds.Height);
             plugins.Add(new HealthBarPlugin(gameController, graphics, settings.HealthBarSettings));
             plugins.Add(new MinimapPlugin(gameController, graphics, GatherMapIcons, settings.MapIconsSettings));
@@ -175,15 +184,63 @@ namespace PoeHUD.Hud
 
             Deactivate += OnDeactivate;
             FormClosing += OnClosing;
-
-            CheckGameWindow();
-            CheckGameState();
             graphics.Render += () => plugins.ForEach(x => x.Render());
             gameController.Clear += graphics.Clear;
             gameController.Render += graphics.TryRender;
             await Task.Run(() => gameController.WhileLoop());
         }
 
+        private void Debug()
+        {
+                StringBuilder sb = new StringBuilder();
+
+                sb.Append("AddressOfProcess: " + _memory.AddressOfProcess.ToString("X"));
+                sb.Append(System.Environment.NewLine);
+
+                sb.Append("GameController full: " + (_memory.offsets.Base + _memory.AddressOfProcess).ToString("X"));
+                sb.Append(System.Environment.NewLine);
+
+                sb.Append("GameController: " + (_memory.offsets.Base + _memory.AddressOfProcess).ToString("X"));
+                sb.Append(System.Environment.NewLine);
+
+                sb.Append("TheGame: " + gameController.Game.Address.ToString("X"));
+                sb.Append(System.Environment.NewLine);
+
+                sb.Append("IngameState: " + gameController.Game.IngameState.Address.ToString("X"));
+                sb.Append(System.Environment.NewLine);
+
+
+                sb.Append("IngameData: " + gameController.Game.IngameState.Data.Address.ToString("X"));
+                sb.Append(System.Environment.NewLine);
+
+                sb.Append("IngameUi: " + gameController.Game.IngameState.IngameUi.Address.ToString("X"));
+                sb.Append(System.Environment.NewLine);
+
+                sb.Append("UIRoot: " + gameController.Game.IngameState.UIRoot.Address.ToString("X"));
+                sb.Append(System.Environment.NewLine);
+
+                sb.Append("ServerData: " + gameController.Game.IngameState.ServerData.Address.ToString("X"));
+                sb.Append(System.Environment.NewLine);
+
+
+                sb.Append("GetInventoryZone: " + _memory.ReadLong(gameController.Game.IngameState.IngameUi.InventoryPanel.Address + Poe.Element.OffsetBuffers + 0x42c).ToString("X"));
+                sb.Append(System.Environment.NewLine);
+
+                sb.Append("Area Addr: " + gameController.Game.IngameState.Data.CurrentArea.Address.ToString("X"));
+                sb.Append(System.Environment.NewLine);
+
+                sb.Append("Area Name: " + gameController.Game.IngameState.Data.CurrentArea.Name);
+                sb.Append(System.Environment.NewLine);
+
+
+                sb.Append("Area change: " + _memory.ReadInt(_memory.offsets.AreaChangeCount + _memory.AddressOfProcess));
+                sb.Append(System.Environment.NewLine);
+                sb.Append(System.Environment.NewLine);
+
+                sb.Append(_memory.DebugStr);
+
+                File.WriteAllText("__BaseOffsets.txt", sb.ToString());
+        }
        
     }
 }

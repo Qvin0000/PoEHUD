@@ -9,6 +9,7 @@ using SharpDX.Direct3D9;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Windows.Forms;
 
@@ -24,7 +25,7 @@ namespace PoeHUD.Hud.Preload
         private bool isAreaChanged = false;
         public static Color AreaNameColor = new Color();
         private readonly SettingsHub settingsHub;
-
+        private bool autoHide = false;
         //Can be used by external plugins:
         public static event Action<HashSet<PreloadConfigLine>> ePreloadResult = delegate { };
         public static Dictionary<string, PreloadConfigLine> Essences;
@@ -195,6 +196,22 @@ namespace PoeHUD.Hud.Preload
                 ResetArea();
                 Parse();
             }
+            var UIHover = GameController.Game.IngameState.UIHover;
+            var miniMap = GameController.Game.IngameState.IngameUi.Map.SmallMinimap;
+
+            if (Settings.Enable.Value && UIHover.Address != 0x00 && UIHover.Tooltip.Address != 0x00 &&
+                UIHover.Tooltip.IsVisible && UIHover.Tooltip.GetClientRect().Intersects(miniMap.GetClientRect()))
+            {
+                autoHide = true;
+                Settings.Enable.Value = false;
+            }
+            if (autoHide && (UIHover.Address == 0x00 || UIHover.Tooltip.Address == 0x00 ||
+                             !UIHover.Tooltip.IsVisible))
+            {
+                autoHide = false;
+                Settings.Enable.Value = true;
+            }
+            
             if (!holdKey && WinApi.IsKeyDown(Keys.F10))
             {
                 holdKey = true;
@@ -216,6 +233,7 @@ namespace PoeHUD.Hud.Preload
                 Size = new Size2F();
                 return;
             }
+            
            /* if (isAreaChanged)
             {
                 ResetArea();
@@ -248,21 +266,26 @@ namespace PoeHUD.Hud.Preload
             alerts.Clear();
             AreaNameColor = Settings.AreaTextColor;
             foundSpecificPerandusChest = false;
+            CountCoroutine = 0;
         }
 
         private void OnAreaChange(AreaController area)
         {
             ResetArea();
             essencefound = false;
-            (new Coroutine(ParseCoroutine(), nameof(PreloadAlertPlugin), "Area Change Preload Parse")).Run();
+            var runParallel = (new Coroutine(ParseCoroutine(), nameof(PreloadAlertPlugin), "Area Change Preload Parse")).Run();
             isAreaChanged = true;
+            runParallel.UpdateTicks(CountCoroutine);
         }
 
         IEnumerator ParseCoroutine()
         {
             yield return new WaitTime(100);
             Parse();
+            
         }
+
+        private int CountCoroutine;
         private void Parse()
         {
             Memory memory = GameController.Memory;
@@ -293,11 +316,13 @@ namespace PoeHUD.Hud.Preload
                 if (text.Contains('@')) { text = text.Split('@')[0]; }
 
                 preloadStrings.Add(text);
-
+                CountCoroutine++;
             }
 
             preloadStrings.Sort();
-
+         
+            
+           // File.WriteAllLines("preload.txt",preloadStrings);
             foreach (var strings in preloadStrings)
             {
                 CheckForPreload(strings);

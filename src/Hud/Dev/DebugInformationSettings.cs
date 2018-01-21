@@ -2,7 +2,7 @@
 
 namespace PoeHUD.Hud.Dev
 {
-    public class DebugInformationSettings : SettingsBase
+    public class DebugInformationSettings:SettingsBase
     {
         public DebugInformationSettings()
         {
@@ -10,6 +10,6 @@ namespace PoeHUD.Hud.Dev
         }
 
         public bool ShowWindow { get; set; }
-
+        
     }
 }

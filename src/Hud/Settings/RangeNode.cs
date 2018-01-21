@@ -22,15 +22,25 @@ namespace PoeHUD.Hud.Settings
             get => _value;
             set
             {
-                OnValueChanged?.Invoke();
-                _value = value;
+                if (!value.Equals(_value))
+                {
+                    _value = value;
+                    try
+                    {
+                        OnValueChanged?.Invoke();
+                    }
+                    catch (Exception)
+                    {
+
+                        DebugPlug.DebugPlugin.LogMsg("Error in function that subscribed for: RangeNode.OnValueChanged", 10, SharpDX.Color.Red);
+                    }
+                }
             }
         }
 
         public event Action OnValueChanged;
         [JsonIgnore]
         public T Min { get; set; }
-
         [JsonIgnore]
         public T Max { get; set; }
 

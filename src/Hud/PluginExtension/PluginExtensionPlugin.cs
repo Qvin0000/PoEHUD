@@ -162,6 +162,20 @@ namespace PoeHUD.Hud.PluginExtension
         }
 
 
+        private Dictionary<string, Action<object[]>> PluginEvents = new Dictionary<string, Action<object[]>>();
+        public void SubscribePluginEvent(string uniqEventName, Action<object[]> func)
+        {
+            if (!PluginEvents.ContainsKey(uniqEventName))
+                PluginEvents.Add(uniqEventName, func);
+            else
+                LogMessage("Event '" + uniqEventName + "' is already exist!", 10);
+        }
+
+        public void CallPluginEvent(string uniqEventName, object[] args)
+        {
+            if (PluginEvents.ContainsKey(uniqEventName))
+                PluginEvents[uniqEventName](args);
+        }
 
         private void TryLoadDll(string path, string dir)
         {
@@ -171,7 +185,7 @@ namespace PoeHUD.Hud.PluginExtension
                 return;
             }
 
-            var myAsm = Assembly.LoadFrom(path);
+            var myAsm = Assembly.Load(File.ReadAllBytes(path));
             if (myAsm == null) return;
 
             var asmTypes = myAsm.GetTypes();
@@ -179,7 +193,7 @@ namespace PoeHUD.Hud.PluginExtension
 
             foreach (var type in asmTypes)
             {
-                if (type.IsSubclassOf(typeof(BasePlugin)))
+                if (type.IsSubclassOf(typeof(BasePlugin)) && !type.IsAbstract)
                 {
                     var extPlugin = new ExternalPlugin(type, this, dir);
                     Plugins.Add(extPlugin.BPlugin);

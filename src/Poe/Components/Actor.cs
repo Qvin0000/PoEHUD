@@ -31,6 +31,7 @@ namespace PoeHUD.Poe.Components
                     // using int instead of long because first 4 bytes are id
                     // second 4 bytes are wierd number which depend on socket number/location.
                     int item = M.ReadInt(i);
+                    list.Add(item);
                 }
                 return list;
             }
@@ -46,8 +47,8 @@ namespace PoeHUD.Poe.Components
             long num2 = M.ReadLong(Address + 0x310);
             for (long i = num; i < num2; i += 8)
             {
-                long num3 = M.ReadLong(i);
-                if (num3 == entity.Id)
+                int num3 = M.ReadInt(i);
+                if (num3 == (int)(entity.Id >> 32))
                 {
                     return true;
                 }

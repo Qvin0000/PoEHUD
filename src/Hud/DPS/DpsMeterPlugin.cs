@@ -59,7 +59,7 @@ namespace PoeHUD.Hud.Dps
 
         private void Clear()
         {
-            damageMemory = new double[1000/GameController.Performance.DpsUpdateTime];
+            damageMemory = new double[1000/GameController.Performance.Settings.DpsUpdateTime];
             MaxDps = 0;
             CurrentDps = 0;
             CurrentDmg = 0;
@@ -74,11 +74,14 @@ namespace PoeHUD.Hud.Dps
                 base.Render();
                 if (!Settings.Enable ||
                     !Settings.ShowInTown && GameController.Area.CurrentArea.IsTown ||
-                    !Settings.ShowInTown && GameController.Area.CurrentArea.IsHideout)
+                    !Settings.ShowInTown && GameController.Area.CurrentArea.IsHideout 
+                    || GameController.Game.IngameState.IngameUi.InventoryPanel.IsVisible 
+                    || GameController.Game.IngameState.UIHover.Width<0)
                 {
                     dpsCoroutine.Pause();
                     return;
                 }
+
                 dpsCoroutine.Resume();
 
                 Vector2 position = StartDrawPointFunc();
@@ -89,7 +92,7 @@ namespace PoeHUD.Hud.Dps
                  monsterAround = Monsters.Count + " monsters" + Environment.NewLine;
                  monsterAroundHp = sumHp + " hp" + Environment.NewLine;
                 }
-                Size2 dpsSize = Graphics.DrawText(CurrentDmg + " dps", Settings.DpsTextSize, position, Settings.DpsFontColor, FontDrawFlags.Right); 
+                Size2 dpsSize = Graphics.DrawText(CurrentDps  + " dps", Settings.DpsTextSize, position, Settings.DpsFontColor, FontDrawFlags.Right); 
                 Size2 peakSize = Graphics.DrawText(MaxDps + " top dps", Settings.PeakDpsTextSize, position.Translate(0, dpsSize.Height), Settings.PeakFontColor, FontDrawFlags.Right);
                 int height = dpsSize.Height + peakSize.Height;
                 int width = Math.Max(1, dpsSize.Width);

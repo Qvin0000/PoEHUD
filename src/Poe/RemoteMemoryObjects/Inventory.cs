@@ -8,7 +8,8 @@ namespace PoeHUD.Poe.RemoteMemoryObjects
     {
         public long ItemCount => M.ReadLong(Address + 0x410, 0x630, 0x50);
         public long TotalBoxesInInventoryRow => M.ReadInt(Address + 0x410, 0x630, 0x0C);
-
+        public int Row => M.ReadInt(Address + 0xce8);
+        public int Line => M.ReadInt(Address + 0xce4);
         private InventoryType GetInvType()
         {
         // For Poe MemoryLeak bug where ChildCount of PlayerInventory keep

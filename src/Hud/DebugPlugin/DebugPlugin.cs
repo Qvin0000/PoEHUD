@@ -70,8 +70,8 @@ namespace PoeHUD.DebugPlug
         private static List<DisplayMessage> DebugLog = new List<DisplayMessage>();
         private static Dictionary<string, DisplayMessage> MessagesCache = new Dictionary<string, DisplayMessage>();
         private static int capacityQueue = 5000;
-        public static Queue<(string message, DateTime time, Color color)> QueueDebugMessages = new Queue<(string message, DateTime time, Color color)>(capacityQueue);
-
+        public static Queue<(string message,DateTime time,Color color)> QueueDebugMessages = new Queue<(string message, DateTime time, Color color)>(capacityQueue);
+        
         private void ClearLog()
         {
             DebugLog.Clear();
@@ -79,7 +79,7 @@ namespace PoeHUD.DebugPlug
         }
 
         //If delay is -1 message will newer be destroyed
-        public static void LogMsg(object o, float delay)
+        public static void LogMsg(object o, float delay =1f)
         {
             if (o == null)
                 LogMsg("Null", delay, Color.White);
@@ -92,7 +92,7 @@ namespace PoeHUD.DebugPlug
                 AddNewMessage("Null", delay, color);
             else
                 AddNewMessage(o.ToString(), delay, color);
-            QueueDebugMessages.Enqueue((o.ToString(), DateTime.Now, color));
+            QueueDebugMessages.Enqueue((o.ToString(),DateTime.Now, color));
             if (QueueDebugMessages.Count > capacityQueue * 0.9)
             {
                 for (int i = 0; i < 1000; i++)
@@ -116,7 +116,7 @@ namespace PoeHUD.DebugPlug
             MessagesCache.Add(message, rezult);
             DebugLog.Add(rezult);
         }
-
+       
         public class DisplayMessage
         {
             public string Message;
@@ -133,7 +133,7 @@ namespace PoeHUD.DebugPlug
 
                 UpdateTime();
             }
-
+           
             public void UpdateTime()
             {
                 if (Delay != -1)

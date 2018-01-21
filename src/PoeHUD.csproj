@@ -92,7 +92,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
     <DebugSymbols>true</DebugSymbols>
-    <OutputPath>bin\x64\Debug\</OutputPath>
+    <OutputPath>..\Release\</OutputPath>
     <DefineConstants>TRACE;DEBUG</DefineConstants>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <DebugType>full</DebugType>
@@ -116,53 +116,69 @@
     <DocumentationFile>
     </DocumentationFile>
   </PropertyGroup>
+  <PropertyGroup>
+    <RunPostBuildEvent>OnOutputUpdated</RunPostBuildEvent>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="Antlr4.Runtime, Version=4.6.0.0, Culture=neutral, PublicKeyToken=09abb75b9ed49849, processorArchitecture=MSIL">
       <HintPath>packages\Antlr4.Runtime.4.6.4\lib\net45\Antlr4.Runtime.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="ImGui.NET, Version=0.3.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\Release\ImGui.NET.dll</HintPath>
+    <Reference Include="ImGui.NET, Version=0.4.0.0, Culture=neutral, PublicKeyToken=null">
+      <HintPath>Release\ImGui.NET.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="Newtonsoft.Json, Version=10.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <HintPath>packages\Newtonsoft.Json.10.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="SharpDX, Version=4.0.1.0, Culture=neutral, PublicKeyToken=b4dcf0f35e5521f1, processorArchitecture=MSIL">
+    <Reference Include="PoeFilterParser, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null">
+      <HintPath>..\Release\PoeFilterParser.dll</HintPath>
+    </Reference>
+    <Reference Include="SharpDX, Version=4.0.1.0, Culture=neutral, PublicKeyToken=b4dcf0f35e5521f1">
       <HintPath>packages\SharpDX.4.0.1\lib\net45\SharpDX.dll</HintPath>
-      <Private>True</Private>
     </Reference>
-    <Reference Include="SharpDX.Desktop, Version=4.0.1.0, Culture=neutral, PublicKeyToken=b4dcf0f35e5521f1, processorArchitecture=MSIL">
+    <Reference Include="SharpDX.Desktop, Version=4.0.1.0, Culture=neutral, PublicKeyToken=b4dcf0f35e5521f1">
       <HintPath>packages\SharpDX.Desktop.4.0.1\lib\net45\SharpDX.Desktop.dll</HintPath>
-      <Private>True</Private>
     </Reference>
-    <Reference Include="SharpDX.Direct3D9, Version=4.0.1.0, Culture=neutral, PublicKeyToken=b4dcf0f35e5521f1, processorArchitecture=MSIL">
+    <Reference Include="SharpDX.Direct3D9, Version=4.0.1.0, Culture=neutral, PublicKeyToken=b4dcf0f35e5521f1">
       <HintPath>packages\SharpDX.Direct3D9.4.0.1\lib\net45\SharpDX.Direct3D9.dll</HintPath>
-      <Private>True</Private>
     </Reference>
-    <Reference Include="SharpDX.Mathematics, Version=4.0.1.0, Culture=neutral, PublicKeyToken=b4dcf0f35e5521f1, processorArchitecture=MSIL">
+    <Reference Include="SharpDX.Mathematics, Version=4.0.1.0, Culture=neutral, PublicKeyToken=b4dcf0f35e5521f1">
       <HintPath>packages\SharpDX.Mathematics.4.0.1\lib\net45\SharpDX.Mathematics.dll</HintPath>
-      <Private>True</Private>
     </Reference>
     <Reference Include="System.Buffers, Version=4.0.1.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\Release\System.Buffers.dll</HintPath>
+      <HintPath>packages\System.Buffers.4.3.0\lib\netstandard1.1\System.Buffers.dll</HintPath>
     </Reference>
     <Reference Include="System.ComponentModel.Composition" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.IdentityModel" />
     <Reference Include="System.Numerics" />
     <Reference Include="System.Numerics.Vectors, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\Release\System.Numerics.Vectors.dll</HintPath>
+      <HintPath>D:\CopyFromMain\System.Numerics.Vectors.dll</HintPath>
     </Reference>
-    <Reference Include="System.ValueTuple, Version=4.0.1.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
-      <HintPath>packages\System.ValueTuple.4.3.0\lib\netstandard1.0\System.ValueTuple.dll</HintPath>
+    <Reference Include="System.Runtime">
+      <HintPath>packages\System.Runtime.4.3.0\lib\net462\System.Runtime.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Runtime.CompilerServices.Unsafe, Version=4.0.2.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>packages\System.Runtime.CompilerServices.Unsafe.4.3.0\lib\netstandard1.0\System.Runtime.CompilerServices.Unsafe.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Runtime.Extensions">
+      <HintPath>packages\System.Runtime.Extensions.4.3.0\lib\net462\System.Runtime.Extensions.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Runtime.InteropServices">
+      <HintPath>packages\System.Runtime.InteropServices.4.3.0\lib\net462\System.Runtime.InteropServices.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.ValueTuple, Version=4.0.2.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51">
+      <HintPath>packages\System.ValueTuple.4.4.0\lib\net461\System.ValueTuple.dll</HintPath>
     </Reference>
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System" />
     <Reference Include="System.Core" />
-    <Reference Include="System.Drawing" />
     <Reference Include="Trinet.Core.IO.Ntfs, Version=4.0.0.0, Culture=neutral, PublicKeyToken=0aeaaa20a328a46c, processorArchitecture=MSIL">
       <HintPath>packages\Trinet.Core.IO.Ntfs.4.0.0\lib\net35\Trinet.Core.IO.Ntfs.dll</HintPath>
       <Private>True</Private>
@@ -175,6 +191,7 @@
     <Compile Include="Framework\Coroutine.cs" />
     <Compile Include="Framework\Helpers\ActionHelper.cs" />
     <Compile Include="Framework\Helpers\CoroutineExtension.cs" />
+    <Compile Include="Framework\Helpers\EntityExtension.cs" />
     <Compile Include="Framework\Helpers\LinqHelper.cs" />
     <Compile Include="Framework\Helpers\MathHepler.cs" />
     <Compile Include="Framework\Helpers\ConvertHelper.cs" />
@@ -185,6 +202,7 @@
     <Compile Include="Framework\InputHooks\Structures\KeyboardHookStruct.cs" />
     <Compile Include="Framework\InputHooks\MouseHook.cs" />
     <Compile Include="Framework\InputHooks\Structures\MouseLLHookStruct.cs" />
+    <Compile Include="Framework\InputHooks\Utils\WinApi.cs" />
     <Compile Include="Framework\MemoryControl.cs" />
     <Compile Include="Framework\Runner.cs" />
     <Compile Include="Framework\Tools\Generators.cs" />
@@ -229,7 +247,7 @@
     <Compile Include="Hud\Menu\MenuSettings.cs" />
     <Compile Include="Hud\Menu\RootButton.cs" />
     <Compile Include="Hud\Menu\SimpleMenu.cs" />
-    <Compile Include="Hud\Performance\PerformanceSettings.cs" />
+    <Compile Include="Hud\Performance\Performance.cs" />
     <Compile Include="Hud\PluginExtension\ExternalPlugin.cs" />
     <Compile Include="Hud\PluginExtension\FileOperationAPIWrapper.cs" />
     <Compile Include="Hud\PluginExtension\PluginExtensionPlugin.cs" />
@@ -282,6 +300,7 @@
     <Compile Include="Hud\Health\CreatureType.cs" />
     <Compile Include="Hud\Interfaces\IPluginWithMapIcons.cs" />
     <Compile Include="Models\AreaInstance.cs" />
+    <Compile Include="Hud\Performance\PerformanceSettings.cs" />
     <Compile Include="Plugins\BasePlugin.cs" />
     <Compile Include="Plugins\BaseSettingsPlugin.cs" />
     <Compile Include="Plugins\MenuAttribute.cs" />
@@ -437,7 +456,5 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>
-    </PostBuildEvent>
   </PropertyGroup>
 </Project>

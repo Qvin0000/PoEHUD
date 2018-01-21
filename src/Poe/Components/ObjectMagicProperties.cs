@@ -1,19 +1,26 @@
 using PoeHUD.Models.Enums;
 using System.Collections.Generic;
 
+
 namespace PoeHUD.Poe.Components
 {
     public class ObjectMagicProperties : Component
     {
+        private MonsterRarity _rarity = MonsterRarity.White;
+        private bool setted = false;
         public MonsterRarity Rarity
         {
             get
             {
-                if (Address != 0)
+                if (!setted && Address != 0)
                 {
-                    return (MonsterRarity)M.ReadInt(Address + 0x7C);
+                    _rarity = (MonsterRarity)M.ReadInt(Address + 0x7C);
+                    if ((int) _rarity >= 0 && (int) _rarity <= 10)
+                    {
+                        setted = true;
+                    }
                 }
-                return MonsterRarity.White;
+                return _rarity;
             }
         }
 

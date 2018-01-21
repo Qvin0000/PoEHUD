@@ -6,6 +6,8 @@ using ImGuiNET;
 using PoeHUD.Controllers;
 using PoeHUD.Framework;
 using PoeHUD.Hud.UI;
+using PoeHUD.Poe;
+
 namespace PoeHUD.Hud.Dev
 {
     public class DebugInformation : Plugin<DebugInformationSettings>
@@ -29,8 +31,8 @@ namespace PoeHUD.Hud.Dev
         {
             if (_settings.ShowWindow)
             {
-                ImGui.SetNextWindowPos(new Vector2(100, 100), SetCondition.FirstUseEver);
-                ImGui.SetNextWindowSize(new Vector2(1000, 1000), SetCondition.FirstUseEver);
+                ImGui.SetNextWindowPos(new Vector2(100, 100), Condition.FirstUseEver,new Vector2(1,0));
+                ImGui.SetNextWindowSize(new Vector2(1000, 1000), Condition.FirstUseEver);
 
                 settingsShowWindow = _settings.ShowWindow;
                 ImGui.BeginWindow($"DebugInformation", ref settingsShowWindow, WindowFlags.NoCollapse);
@@ -54,17 +56,17 @@ namespace PoeHUD.Hud.Dev
                     ImGui.Text($"{DI.Value}"); ImGui.NextColumn();
                 }
                 ImGui.Columns(1, "", false);
-                if (_gameController.RenderCount % 60==0)
+                if (GameController.RenderCount % 60==0)
                 {
-                   _maxRenderGraph = _gameController.RenderGraph.Max();
-                    _maxDeltaGraph = _gameController.DeltaGraph.Max();
+                   _maxRenderGraph = _gameController.Performance.RenderGraph.Max();
+                    _maxDeltaGraph = _gameController.Performance.DeltaGraph.Max();
                 }
                 ImGui.Text($"Fps Graph");
                 ImGui.PushStyleColor(ColorTarget.PlotLines,new Vector4(1,0,0,1));
                 ImGui.PushStyleColor(ColorTarget.FrameBg,new Vector4(1,0.98f,0.98f,0.8f));
-                ImGui.PlotLines($"{_maxRenderGraph}{Environment.NewLine}{_gameController.DebugInformation["FpsRender"]}",_gameController.RenderGraph,0,"",0,_maxRenderGraph,new Vector2(0,100),4);
-                ImGui.Text($"Delta Graph last 5 sec");
-                ImGui.PlotLines($"{_maxDeltaGraph}{Environment.NewLine}{_gameController.DebugInformation["DeltaRender"]}",_gameController.DeltaGraph,0,"",0,_maxDeltaGraph,new Vector2(0,100),4);
+                ImGui.PlotLines($"{_maxRenderGraph}{Environment.NewLine}{_gameController.DebugInformation["FpsRender"]}",_gameController.Performance.RenderGraph,0,"",0,_maxRenderGraph,new Vector2(0,100),4);
+                ImGui.Text($"Delta Graph last {(_gameController.Performance.DeltaGraph.Length*1f/_gameController.Performance.Settings.RenderLimit)*1000} ms");
+                ImGui.PlotLines($"{_maxDeltaGraph}{Environment.NewLine}{_gameController.DebugInformation["DeltaRender"]}",_gameController.Performance.DeltaGraph,0,"",0,_maxDeltaGraph,new Vector2(0,100),4);
                 ImGui.PopStyleColor();
                 ImGui.PopStyleColor();
                 DrawFinished(_gameController.CoroutineRunner);

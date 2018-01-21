@@ -64,21 +64,10 @@ namespace PoeHUD.Framework
         }
 
         public int ReadInt(long addr)
-        {
+        {  
             return BitConverter.ToInt32(ReadMem(addr, 4), 0);
         }
-
-        public int ReadInt(int addr, params int[] offsets)
-        {
-            int num = ReadInt(addr);
-            int result = num;
-            for (var index = 0; index < offsets.Length; index++)
-            {
-                var offset = offsets[index];
-                result = ReadInt(result + offset);
-            }
-            return result;
-        }
+        
 
         public int ReadInt(long addr, params long[] offsets)
         {
@@ -160,6 +149,8 @@ namespace PoeHUD.Framework
             {
                 return string.Empty;
             }
+            if(length<1 || length>65535)
+                return String.Empty;
             byte[] mem = ReadMem(addr, length);
             if (mem.Length == 0)
             {
@@ -217,7 +208,9 @@ namespace PoeHUD.Framework
                     {
                         found = true;
                         address[iPattern] = offset;
-                        DebugStr += "Pattern " + iPattern + " is found at " + (AddressOfProcess + offset).ToString("X") + " offset: " + offset.ToString("X") + Environment.NewLine;
+#if DEBUG
+          DebugStr += "Pattern " + iPattern + " is found at " + (AddressOfProcess + offset).ToString("X") + " offset: " + offset.ToString("X") + Environment.NewLine;              
+#endif
                         break;
                     }
                 }
@@ -225,7 +218,9 @@ namespace PoeHUD.Framework
                 if(!found)
                 {
                     //System.Windows.Forms.MessageBox.Show("Pattern " + iPattern + " is not found!");
-                    DebugStr += "Pattern " + iPattern + " is not found!" + Environment.NewLine;
+#if DEBUG
+           DebugStr += "Pattern " + iPattern + " is not found!" + Environment.NewLine;         
+#endif
                 }
             });
             return address;
@@ -242,5 +237,7 @@ namespace PoeHUD.Framework
                 }
             return !any;
         }
+
+      
     }
 }

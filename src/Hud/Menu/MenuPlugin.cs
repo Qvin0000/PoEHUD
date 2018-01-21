@@ -14,6 +14,7 @@ using System.Collections.Generic;
 using System.Numerics;
 using System.Reflection;
 using ImGuiNET;
+using PoeHUD.Hud.Dev;
 using Vector2 = SharpDX.Vector2;
 using Vector4 = System.Numerics.Vector4;
 
@@ -77,6 +78,10 @@ namespace PoeHUD.Hud.Menu
                 {
                     settingsHub.DebugPluginLogSettings.ShowWindow = !settingsHub.DebugPluginLogSettings.ShowWindow;
                 }
+                if (ImGui.MenuItem("Another Debugs", null, settingsHub.DebugPluginLogSettings.ShowWindow, true))
+                {
+                    DebugTree.Instance.anotherDebugWindow = !DebugTree.Instance.anotherDebugWindow;
+                }
                 ImGui.EndMenu();
             }
             ImGui.EndMainMenuBar();
@@ -121,7 +126,7 @@ namespace PoeHUD.Hud.Menu
                         //TODO: Fix color
                         ImGui.Text($"###Just show ///Wrong color $$$Need fix");
                         Vector4 color4 = new Vector4(colorNodeValue.R,colorNodeValue.G,colorNodeValue.B,colorNodeValue.A);
-                        ImGui.ColorEdit4($"##{propertyInfo.ReflectedType}{propertyInfo.Name}{colorNode.GetHashCode()}",ref color4, true);
+                        ImGui.ColorEdit4($"##{propertyInfo.ReflectedType}{propertyInfo.Name}{colorNode.GetHashCode()}",ref color4, ColorEditFlags.Default);
                     }
                     else
                     {
@@ -530,7 +535,6 @@ namespace PoeHUD.Hud.Menu
             AddChild(showDpsMenu, "Top dps font color", settingsHub.DpsMeterSettings.PeakFontColor);
             AddChild(showDpsMenu, "Show AOE", settingsHub.DpsMeterSettings.CalcAOE); 
             AddChild(showDpsMenu, "Clear", settingsHub.DpsMeterSettings.ClearNode); 
-
             // Map icons
             MenuItem mapIconsMenu = AddChild(MenuRootButton, "Map icons", settingsHub.MapIconsSettings.Enable);
             MenuItem iconSizeMenu = AddChild(mapIconsMenu, "Icon sizes", settingsHub.MonsterTrackerSettings.ShowText);

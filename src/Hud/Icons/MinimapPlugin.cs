@@ -35,7 +35,6 @@ namespace PoeHUD.Hud.Icons
                 {
                     return;
                 }
-
                 if (GameController.Game.IngameState.IngameUi.AtlasPanel.IsVisible)
                     return;
                 if (GameController.Game.IngameState.IngameUi.TreePanel.IsVisible)

@@ -15,9 +15,9 @@ namespace PoeHUD.Hud
         {
             CurrentIcons = new Dictionary<EntityWrapper, MapIcon>();
             GameController.Area.OnAreaChange += delegate
-            {
-                CurrentIcons.Clear();
-            };
+             {
+                 CurrentIcons.Clear();
+             };
             toRemove = new EntityWrapper[512];
         }
 
@@ -26,7 +26,7 @@ namespace PoeHUD.Hud
             base.OnEntityRemoved(entityWrapper);
             CurrentIcons.Remove(entityWrapper);
         }
-
+      
         private EntityWrapper[] toRemove;
         private int index;
         public IEnumerable<MapIcon> GetIcons()
@@ -35,7 +35,10 @@ namespace PoeHUD.Hud
             foreach (var kv in CurrentIcons)
             {
                 if (kv.Value.IsEntityStillValid())
+                {
+                    kv.Value.Hidden();
                     yield return kv.Value;
+                }
                 else
                 {
                     toRemove[index] = kv.Key;

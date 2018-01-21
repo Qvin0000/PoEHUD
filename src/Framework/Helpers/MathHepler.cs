@@ -50,18 +50,28 @@ namespace PoeHUD.Framework.Helpers
         {
             return new Vector2(vector.X + dx, vector.Y + dy);
         }
-
+        public static System.Numerics.Vector2 Translate(this System.Numerics.Vector2 vector, float dx, float dy)
+        {
+            return new System.Numerics.Vector2(vector.X + dx, vector.Y + dy);
+        }
+        
+        public static System.Numerics.Vector2 TranslateImGui(this Vector2 vector, float dx, float dy)
+        {
+            return new System.Numerics.Vector2(vector.X + dx, vector.Y + dy);
+        }
         public static Vector3 Translate(this Vector3 vector, float dx, float dy, float dz)
         {
             return new Vector3(vector.X + dx, vector.Y + dy, vector.Z + dz);
         }
-
-
-
+        
+        
+        
         public static float Distance(this Vector2 a, Vector2 b)
         {
-            return (float)Math.Sqrt(Math.Pow(a.X - b.X, 2) +
-                                    Math.Pow(a.Y - b.Y, 2));
+            return (float) Math.Sqrt(Math.Pow(a.X - b.X, 2) +
+                                     Math.Pow(a.Y - b.Y, 2));
         }
+        
+        
     }
 }

@@ -1,21 +1,25 @@
-using PoeHUD.Controllers;
+using System.Diagnostics;
 using PoeHUD.Framework;
-using PoeHUD.Models;
+using PoeHUD.Hud.Performance;
 
 namespace PoeHUD.Poe.RemoteMemoryObjects
 {
     public class TheGame : RemoteMemoryObject
     {
-        public TheGame(Memory m)
+        public readonly Stopwatch MainTimer;
+        public readonly Performance Performance;
+        public TheGame(Memory m,Performance performance)
         {
             M = m;
             Address = m.ReadLong(Offsets.Base + m.AddressOfProcess, 0x8, 0xf8);//0xC40
             Game = this;
+            MainTimer = Stopwatch.StartNew();
+            Performance = performance;
         }
-        public IngameState IngameState => GameController.Instance.Cache.Enable && GameController.Instance.Cache.IngameState != null
-            ? GameController.Instance.Cache.IngameState
-            : (GameController.Instance.Cache.Enable
-                ? GameController.Instance.Cache.IngameState =
+        public IngameState IngameState => Game.Performance.Cache.Enable && Game.Performance.Cache.IngameState != null
+            ? Game.Performance.Cache.IngameState
+            : (Game.Performance.Cache.Enable
+                ? Game.Performance.Cache.IngameState =
                     IngameStateReal 
                 : IngameStateReal);
 

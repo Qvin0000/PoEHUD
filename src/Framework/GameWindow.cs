@@ -9,10 +9,12 @@ namespace PoeHUD.Framework
 {
     public class GameWindow
     {
+        private readonly GameController _gameController;
         private readonly IntPtr handle;
 
-        public GameWindow(Process process)
+        public GameWindow(Process process,GameController gameController)
         {
+            _gameController = gameController;
             Process = process;
             handle = process.MainWindowHandle;
         }
@@ -21,9 +23,9 @@ namespace PoeHUD.Framework
 
         public RectangleF GetWindowRectangle()
         {
-            if (GameController.Instance.Cache.Enable)
+            if (_gameController.Performance.Cache.Enable)
             {
-                return GameController.Instance.Cache.Window;
+                return _gameController.Performance.Cache.Window;
             }
             return GetWindowRectangleReal();
         }

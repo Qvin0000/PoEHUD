@@ -1,5 +1,6 @@
 ﻿using PoeHUD.Plugins;
 using System;
+using System.Reflection;
 
 namespace PoeHUD.Hud.PluginExtension
 {
@@ -46,8 +47,9 @@ namespace PoeHUD.Hud.PluginExtension
             API.eLoadSettings += BPlugin.iLoadSettings;
         }
 
-        
-        
-        //////////////////////////////////////////////////////    
+
+  
+
+        //////////////////////////////////////////////////////
     }
 }

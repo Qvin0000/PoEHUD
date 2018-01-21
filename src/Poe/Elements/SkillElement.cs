@@ -13,7 +13,7 @@
         // Number of time a skill is used ... reset on area change.
         public int totalUses => M.ReadInt(unknown3 + 0x4C);
 
-        // Usefull for Active Attack skills, movement skills would be true if they are being used. 
+        // Usefull for channeling skills only.
         public bool isUsing => M.ReadInt(unknown3 + 0x08) > 2;
 
         // A variable is unknown.

@@ -15,16 +15,21 @@ namespace PoeHUD.Poe.Elements
             }
         }
 
+        private string _text;
         public string Text
         {
             get
             {
-                var LabelLen = Length;
-                if (LabelLen <= 0 || LabelLen > 256)
+                if (_text == null)
                 {
-                    return "";
+                    var LabelLen = Length;
+                    if (LabelLen <= 0 || LabelLen > 256)
+                    {
+                        return "";
+                    }
+                    _text = LabelLen >= 8 ? M.ReadStringU(M.ReadLong(Address + 0xC40), LabelLen * 2) : M.ReadStringU(Address + 0xC40, LabelLen * 2);
                 }
-                return LabelLen >= 8 ? M.ReadStringU(M.ReadLong(Address + 0xC40), LabelLen * 2) : M.ReadStringU(Address + 0xC40, LabelLen * 2);
+                return _text;
             }
         }
         

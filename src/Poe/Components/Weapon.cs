@@ -6,5 +6,6 @@ namespace PoeHUD.Poe.Components
         public int DamageMax => Address != 0 ? M.ReadInt(Address + 0x28, 0x18) : 0;
         public int AttackTime => Address != 0 ? M.ReadInt(Address + 0x28, 0x1C) : 1;
         public int CritChance => Address != 0 ? M.ReadInt(Address + 0x28, 0x20) : 0;
+        public float AttacksPerSecond => 1000f / (AttackTime != 0 ? AttackTime : 1000);
     }
 }

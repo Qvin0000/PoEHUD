@@ -3,6 +3,11 @@ using PoeHUD.Hud.UI;
 using PoeHUD.Models;
 using PoeHUD.Poe.Components;
 using System.Collections.Generic;
+using System.IO;
+using Newtonsoft.Json;
+using PoeHUD.DebugPlug;
+using PoeHUD.Hud.Settings;
+using SharpDX;
 
 namespace PoeHUD.Hud.Trackers
 {
@@ -57,16 +62,32 @@ namespace PoeHUD.Hud.Trackers
                 {"Metadata/Chests/StrongBoxes/Artisan","artisan.png"},
                 {"Metadata/Chests/StrongBoxes/Jeweller","jeweller.png"},
                 {"Metadata/Chests/StrongBoxes/Cartographer","cartographer.png"},
+                {"Metadata/Chests/StrongBoxes/CartographerLowMaps","cartographer.png"},
+                {"Metadata/Chests/StrongBoxes/CartographerMidMaps","cartographer.png"},
+                {"Metadata/Chests/StrongBoxes/CartographerHighMaps","cartographer.png"},
                 {"Metadata/Chests/StrongBoxes/Ornate","large.png"},
                 {"Metadata/Chests/StrongBoxes/Arcanist","arcanist.png"},
                 {"Metadata/Chests/StrongBoxes/Gemcutter","gemcutter.png"},
                 {"Metadata/Chests/StrongBoxes/StrongboxDivination","diviner.png"},
             };
 
-
+        private readonly Dictionary<string,ManualPoiIcon> ManualPoiIcons;
+        
         public PoiTracker(GameController gameController, Graphics graphics, PoiTrackerSettings settings)
             : base(gameController, graphics, settings)
-        { }
+        {
+            if (!File.Exists("config/icons.json"))
+            {
+                File.WriteAllText("config/icons.json","");
+            }
+            else
+            {
+                var json = File.ReadAllText("config/icons.json");
+                ManualPoiIcons = JsonConvert.DeserializeObject<Dictionary<string,ManualPoiIcon>>(json);
+            }
+           
+          
+        }
 
         public override void Render()
         {
@@ -84,7 +105,7 @@ namespace PoeHUD.Hud.Trackers
             }
         }
 
-
+        
         private MapIcon GetMapIcon(EntityWrapper e)
         {
             if (e.HasComponent<NPC>() && masters.Contains(e.Path))
@@ -105,7 +126,7 @@ namespace PoeHUD.Hud.Trackers
                 {
                     return new ChestMapIcon(e, new HudTexture("strongbox.png", Settings.BreachChestColor), () => Settings.BreachChest, Settings.BreachChestIcon);
                 }
-
+                
                 if (e.GetComponent<Chest>().IsStrongbox)
                 {
 
@@ -121,7 +142,20 @@ namespace PoeHUD.Hud.Trackers
                 }
                 return new ChestMapIcon(e, new HudTexture("chest.png"), () => Settings.Chests, Settings.ChestsIcon);
             }
+
+            if (ManualPoiIcons.TryGetValue(e.Path, out var manualTexture))
+            {
+                return new MapIcon(e,new HudTexture(manualTexture.Icon,manualTexture.Color),(() => manualTexture.Show),manualTexture.Size);
+            }
             return null;
         }
+    }
+
+    class ManualPoiIcon
+    {
+        public string Icon { get; set; }
+        public Color Color { get; set; }
+        public bool Show { get; set; }
+        public int Size { get; set; }
     }
 }

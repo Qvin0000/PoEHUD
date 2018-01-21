@@ -1,5 +1,3 @@
-using PoeHUD.Controllers;
-
 namespace PoeHUD.Poe.Elements
 {
     public class Map : Element
@@ -7,28 +5,16 @@ namespace PoeHUD.Poe.Elements
         //public Element MapProperties => ReadObjectAt<Element>(0x1FC + OffsetBuffers);
 
         public Element LargeMap => ReadObjectAt<Element>(0x31C  + OffsetBuffers);
-        public float LargeMapShiftX => M.ReadFloat(LargeMap.Address + OffsetBuffers + 0x2AC);
-        public float LargeMapShiftY => M.ReadFloat(LargeMap.Address + OffsetBuffers + 0x2B0);
-        private float _largeMapZoom;
-       
-        public float LargeMapZoom
-        {
-            get
-            {
-                Experimental();
-                return _largeMapZoom;
-            }
-        }
 
-        private long lastUpdateTime;
-        void Experimental()
-        {
-            if (GameController.Instance.MainTimer.ElapsedMilliseconds - lastUpdateTime > 500)
-            {
-                lastUpdateTime = GameController.Instance.MainTimer.ElapsedMilliseconds;
-                _largeMapZoom = M.ReadFloat(LargeMap.Address + OffsetBuffers + 0x2F0);
-            }
-        }
+        public float LargeMapShiftX => Game.Performance.ReadMemWithCache(M.ReadFloat, LargeMap.Address + OffsetBuffers + 0x2AC,
+            Game.Performance.skipTicksRender, 50);
+
+        public float LargeMapShiftY => Game.Performance.ReadMemWithCache(M.ReadFloat, LargeMap.Address + OffsetBuffers + 0x2B0,
+            Game.Performance.skipTicksRender, 50);
+      
+
+        public float LargeMapZoom => Game.Performance.ReadMemWithCache(M.ReadFloat, LargeMap.Address + OffsetBuffers + 0x2F0,
+            Game.Performance.skipTicksRender, 100);
             
         public Element SmallMinimap => ReadObjectAt<Element>(0x324  + OffsetBuffers);
         public float SmallMinimapX => M.ReadFloat(SmallMinimap.Address + OffsetBuffers + 0x2AC);

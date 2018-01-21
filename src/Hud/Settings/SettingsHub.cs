@@ -109,25 +109,32 @@ namespace PoeHUD.Hud.Settings
         public DebugInformationSettings DebugInformationSettings { get; private set; }
         [JsonIgnore]
         public DebugPluginLogSettings DebugPluginLogSettings { get; private set; }
+
+        private static SettingsHub loadedSettings;
         public static SettingsHub Load()
         {
-            try
+            if (loadedSettings == null)
             {
-                string json = File.ReadAllText(SETTINGS_FILE_NAME);
-                return JsonConvert.DeserializeObject<SettingsHub>(json, jsonSettings);
-            }
-            catch
-            {
-                if (File.Exists(SETTINGS_FILE_NAME))
+                try
                 {
-                    string backupFileName = SETTINGS_FILE_NAME + DateTime.Now.Ticks;
-                    File.Move(SETTINGS_FILE_NAME, backupFileName);
+                    string json = File.ReadAllText(SETTINGS_FILE_NAME);
+                    return JsonConvert.DeserializeObject<SettingsHub>(json, jsonSettings);
                 }
+                catch
+                {
+                    if (File.Exists(SETTINGS_FILE_NAME))
+                    {
+                        string backupFileName = SETTINGS_FILE_NAME + DateTime.Now.Ticks;
+                        File.Move(SETTINGS_FILE_NAME, backupFileName);
+                    }
 
-                var settings = new SettingsHub();
-                Save(settings);
-                return settings;
+                    var settings = new SettingsHub();
+                    Save(settings);
+                    loadedSettings = settings;
+                    return settings;
+                }
             }
+            return loadedSettings;
         }
 
         public static void Save(SettingsHub settings)

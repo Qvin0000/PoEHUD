@@ -7,8 +7,8 @@ namespace PoeHUD.Hud.Health
         public UnitSettings(uint color, uint outline)
         {
             Enable = true;
-            Width = new RangeNode<float>(100, 50, 180);
-            Height = new RangeNode<float>(20, 10, 50);
+            Width = new RangeNode<float>(100, 50, 150);
+            Height = new RangeNode<float>(20, 10, 75);
             Color = color;
             Outline = outline;
             Under10Percent = 0xffffffff;

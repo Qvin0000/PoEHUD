@@ -2,12 +2,12 @@
 
 namespace PoeHUD.Hud.Dev
 {
-    public class DebugPluginLogSettings : SettingsBase
+    public class DebugPluginLogSettings:SettingsBase
     {
         public DebugPluginLogSettings()
         {
             Enable = true;
-
+            
         }
 
         public bool ShowWindow { get; set; }

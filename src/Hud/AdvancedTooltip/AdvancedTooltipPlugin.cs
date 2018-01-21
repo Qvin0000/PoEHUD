@@ -13,6 +13,7 @@ using SharpDX.Direct3D9;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices.ComTypes;
 using System.Windows.Forms;
 using Color = SharpDX.Color;
 using Graphics = PoeHUD.Hud.UI.Graphics;
@@ -61,42 +62,53 @@ namespace PoeHUD.Hud.AdvancedTooltip
                 if (tooltip == null || poeEntity.Address == 0 || !poeEntity.IsValid) { return; }
                 RectangleF tooltipRect = tooltip.GetClientRect();
 
-
+               
 
                 var modsComponent = poeEntity.GetComponent<Mods>();
                 long id = 0;
                 if (inventoryItemIcon.ToolTipType == ToolTipType.InventoryItem)
                 {
-
+               
                     id = poeEntity.InventoryId;
                 }
                 else
                 {
                     id = poeEntity.Id;
                 }
-
+                var baseItemType = GameController.Files.BaseItemTypes.Translate(poeEntity.Path);
                 if (itemEntity == null || itemEntity.Id != id)
                 {
                     List<ItemMod> itemMods = modsComponent.ItemMods;
-                    mods = itemMods.Select(item => new ModValue(item, GameController.Files, modsComponent.ItemLevel,
-                        GameController.Files.BaseItemTypes.Translate(poeEntity.Path))).ToList();
+                    mods = itemMods.Select(item =>
+                    {
+                        
+                        return new ModValue(item, GameController.Files, modsComponent.ItemLevel,
+                            baseItemType);
+                    }).ToList();
                     itemEntity = poeEntity;
                 }
 
-
-                var sum = mods.Where(modValue => modValue.CouldHaveTiers() && modValue.Tier > 0).Sum(modValue => modValue.Tier);
-                var modsCount = mods.Count(x => x.Tier > 0 && !x.IsCrafted && x.CouldHaveTiers());
-                if (modsCount == 0) modsCount = 1;
-                float result = sum / (float)modsCount;
-                string str = $"{Math.Round(result, 2)} / {modsCount}";
-
-
-                if (result > 0f && result < 3.1f)
+                if (modsComponent.ItemRarity != ItemRarity.Unique && baseItemType.ClassName!="Jewel")
                 {
-                    str = $" \u2605 {str}";
-                }
-                if (Math.Abs(result) > 0) Graphics.DrawText(str, 18, tooltipRect.TopLeft.Translate(25, 56), Settings.ItemMods.T3Color);
 
+                    var sum = mods.Where(modValue =>
+                            modValue.CouldHaveTiers() && modValue.Tier > 0 &&
+                            (modValue.AffixType == ModsDat.ModType.Prefix ||
+                             modValue.AffixType == ModsDat.ModType.Suffix))
+                        .ToList();
+                    var result = sum.Average(x => x.Tier);
+                    string str =
+                        $"{Math.Round(result, 2)} / {sum.Count()} | {mods.Count(modValue => (modValue.AffixType == ModsDat.ModType.Prefix || modValue.AffixType == ModsDat.ModType.Suffix))}";
+
+
+                    if (result > 0f && result < 3.1f)
+                    {
+                        str = $" \u2605 {str}";
+                    }
+
+                    if (Math.Abs(result) > 0)
+                        Graphics.DrawText(str, 18, tooltipRect.TopLeft.Translate(25, 56), Settings.ItemMods.T3Color);
+                }
                 //End
 
 
@@ -215,7 +227,7 @@ namespace PoeHUD.Hud.AdvancedTooltip
                         case "local_attack_speed_+%":
                             aSpd *= (100f + value) / 100;
                             break;
-
+ 
                         case "local_minimum_added_physical_damage":
                             PhysLo += value;
                             break;
@@ -295,7 +307,7 @@ namespace PoeHUD.Hud.AdvancedTooltip
                     textPosition.Translate(0, pDpsSize.Height), DpsColor, FontDrawFlags.Right)
                 : new Size2();
             Size2 peDpsSize = pDps > 0 || eDps > 0
-                ? Graphics.DrawText((pDps + eDps).ToString("#.#"), settings.DpsTextSize, textPosition.Translate(-30, pDpsSize.Height + eDpsSize.Height), Color.YellowGreen, FontDrawFlags.Right)
+                ? Graphics.DrawText((pDps + eDps).ToString("#.#") , settings.DpsTextSize, textPosition.Translate(-30, pDpsSize.Height+eDpsSize.Height), Color.YellowGreen,FontDrawFlags.Right)
                 : new Size2();
             Vector2 dpsTextPosition = textPosition.Translate(0, pDpsSize.Height + eDpsSize.Height);
             Graphics.DrawText("dps", settings.DpsNameTextSize, dpsTextPosition, settings.TextColor, FontDrawFlags.Right);

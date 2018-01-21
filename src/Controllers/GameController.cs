@@ -27,41 +27,35 @@ namespace PoeHUD.Controllers
             }
         }
 
-        public GameController(Memory memory)
+        public GameController(Memory memory, PerformanceSettings settingsHub)
         {
             if (_instance != null) return;
             Instance = this;
+            Performance = new Performance(this,settingsHub);
             Memory = memory;
             CoroutineRunner = new Runner("Main Coroutine");
             CoroutineRunnerParallel = new Runner("Parallel Coroutine");
             Area = new AreaController(this);
+            Game = new TheGame(memory,Performance);
             EntityListWrapper = new EntityListWrapper(this);
-            Window = new GameWindow(memory.Process);
-            Cache = new Cache();
-            Game = new TheGame(memory);
+            Window = new GameWindow(memory.Process,this);
             Files = new FsController(memory);
-            
-            InGame = InGameReal;
+            InGame = Game.IngameState.InGame;
             IsForeGroundCache = WinApi.IsForegroundWindow(Window.Process.MainWindowHandle);
-          
-            
-            MainTimer = Stopwatch.StartNew();
         }
 
         public EntityListWrapper EntityListWrapper { get; }
         public GameWindow Window { get; private set; }
         public TheGame Game { get; }
         public AreaController Area { get; }
-        public Cache Cache { get; private set; } 
         public Memory Memory { get; private set; }
-        public Stopwatch MainTimer { get; }
         public IEnumerable<EntityWrapper> Entities => EntityListWrapper.Entities;
         public readonly Dictionary<string,SettingsBase> pluginsSettings = new Dictionary<string, SettingsBase>();
         
         public EntityWrapper Player => EntityListWrapper.Player;
+        public Dictionary<Models.Enums.PlayerStats, int> PlayerStats => EntityListWrapper.PlayerStats;
         public bool InGame { get; private set; }
         public bool IsLoading { get; private set; }
-        bool InGameReal => Game.IngameState.InGame;
         public bool AutoResume { get; set; }
         public FsController Files { get; private set; }
         public bool IsForeGroundCache { get; private set; }
@@ -70,15 +64,15 @@ namespace PoeHUD.Controllers
         public ConcurrentDictionary<string, float> DebugInformation = new ConcurrentDictionary<string, float>();
         public readonly Runner CoroutineRunner;
         public readonly Runner CoroutineRunnerParallel;
-        public PerformanceSettings Performance;
-        public  long RenderCount { get; private set; }
-        public float[] RenderGraph = new float[121];
-        public float[] DeltaGraph = new float[100];
+        public readonly Performance Performance;
+        public static  long RenderCount { get; private set; }
+        
         private int offsetRenderGraph = 0;
         private int offDelta = 0;
         public void WhileLoop()
         {
             Task.Run(ParallelCoroutineRunner);
+            Performance.Initialise();
             DebugInformation["FpsLoop"] = 0;
             DebugInformation["FpsRender"] = 0;
             DebugInformation["FpsCoroutine"] = 0;
@@ -86,56 +80,30 @@ namespace PoeHUD.Controllers
             var sw = Stopwatch.StartNew();
             float nextRenderTick = sw.ElapsedMilliseconds;
             var tickEverySecond = sw.ElapsedMilliseconds;
-            var skipTicksRender = 0f;
+            
             int fpsLoop = 0;
             int fpsRender = 0;
             int fpsCoroutine = 0;
-            float updateRate = 1f / 60f;
-            float loopLimit = 1;
-            int updateAreaLimit = 100;
-            int updateIngameState = 100;
             int deltaError = 500;
 
             ControlCoroutinesInPlugin();
 
             var updateCoroutine = new Coroutine(MainCoroutineAction, 250, nameof(GameController) ,"$#Main#$") {Priority = CoroutinePriority.Critical};
-            var updateArea = (new Coroutine(() => { Area.RefreshState(); }, updateAreaLimit, nameof(GameController),"Update area") {Priority = CoroutinePriority.High});
+            var updateArea = (new Coroutine(() => { Area.RefreshState(); }, Performance.updateAreaLimit, nameof(GameController),"Update area") {Priority = CoroutinePriority.High});
             var updateGameState = (new Coroutine(() => { 
-               InGame = InGameReal;
-                IsForeGroundCache = Performance.AlwaysForeground || WinApi.IsForegroundWindow(Window.Process.MainWindowHandle);
-               Cache.ForceUpdateWindowCache();
+               InGame = Game.IngameState.InGame;
+                IsForeGroundCache = Performance.Settings.AlwaysForeground || WinApi.IsForegroundWindow(Window.Process.MainWindowHandle);
+               Performance.Cache.ForceUpdateWindowCache();
                IsLoading = Game.IsGameLoading;
-           }, updateIngameState, nameof(GameController), "Update Game State"){Priority = CoroutinePriority.Critical}).Run();
+               Performance.CollectData(Game.IngameState.CurFps,Game.IngameState.CurLatency);
+            }, Performance.updateIngameState, nameof(GameController), "Update Game State"){Priority = CoroutinePriority.Critical}).Run();
+                
+               
             
-            if (Performance != null)
-            {
-                loopLimit = Performance.LoopLimit;
-                skipTicksRender = 1000f/Performance.RenderLimit;
-                Cache.Enable = Performance.Cache;
-                updateAreaLimit = Performance.UpdateAreaLimit;
-                updateIngameState = Performance.UpdateIngemeStateLimit;
-                DeltaGraph = new float[Performance.RenderLimit*5];
-                Performance.UpdateEntityDataLimit.OnValueChanged += () =>
-                {
-                    CoroutineRunner.Coroutines.Concat(CoroutineRunnerParallel.Coroutines).FirstOrDefault(x => x.Name == "Update Entity")
-                        ?.UpdateCondtion(new WaitTime(1000 / Performance.UpdateEntityDataLimit.Value));
-                };
-                Performance.RenderLimit.OnValueChanged += () =>
-                {
-                    skipTicksRender = 1000f / Performance.RenderLimit; 
-                    DeltaGraph = new float[Performance.RenderLimit*5];
-                };
-                Performance.LoopLimit.OnValueChanged += () =>{loopLimit = (int) (300 + Performance.LoopLimit);};
-                Performance.UpdateAreaLimit.OnValueChanged += () => {      CoroutineRunner.Coroutines.Concat(CoroutineRunnerParallel.Coroutines).FirstOrDefault(x => x.Name == "Update Entity")
-                    ?.UpdateCondtion(new WaitTime(Performance.UpdateAreaLimit));};
-                Performance.UpdateIngemeStateLimit.OnValueChanged += () =>{     CoroutineRunner.Coroutines.Concat(CoroutineRunnerParallel.Coroutines).FirstOrDefault(x => x.Name == "Update Entity")
-                    ?.UpdateCondtion(new WaitTime(Performance.UpdateIngemeStateLimit));};
-                Performance.Cache.OnValueChanged += () => { Cache.Enable = Performance.Cache; };
-                Performance.DpsUpdateTime.OnValueChanged += () =>
-                {
-                    CoroutineRunner.Coroutines.Concat(CoroutineRunnerParallel.Coroutines).FirstOrDefault(x=>x.Name == "Calculate DPS")?.UpdateCondtion(new WaitTime(Performance.DpsUpdateTime));
-                };
-            }
+                
+               
+                
+            
             updateArea.AutoRestart(CoroutineRunner).Run();
             sw.Restart();
             CoroutineRunnerParallel.RunPerLoopIter = 1;
@@ -158,7 +126,7 @@ namespace PoeHUD.Controllers
                         {
                             CoroutineRunner.Update();
                         }
-                        catch(Exception e){DebugPlugin.LogMsg($"{e.Message}",1);}
+                        catch(Exception e){DebugPlugin.LogMsg($"Coroutine error: {e.Message}",6);}
                     }
                 }
                
@@ -166,26 +134,27 @@ namespace PoeHUD.Controllers
                 if (sw.Elapsed.TotalMilliseconds >= nextRenderTick && InGame && IsForeGroundCache && !IsLoading)
                 {
                     Render.SafeInvoke();
-                    nextRenderTick += skipTicksRender;
+                    nextRenderTick += Performance.skipTicksRender;
                     fpsRender++;
                     RenderCount++;
                     var deltaRender = (float) (sw.Elapsed.TotalMilliseconds - startFrameTime);
                     DebugInformation["DeltaRender"] = deltaRender;
-                    DeltaGraph[offDelta] = deltaRender;
+                    Performance.DeltaGraph[offDelta] = deltaRender;
                     offDelta++;
-                    if (offDelta >= DeltaGraph.Length) offDelta = 0;
+                    if (offDelta >= Performance.DeltaGraph.Length) offDelta = 0;
                 }
                 
 
                 if (sw.ElapsedMilliseconds >= tickEverySecond)
                 {
+                    Performance.CalculateMeanDelta();
                     DebugInformation["FpsLoop"] = fpsLoop;
                     DebugInformation["FpsRender"] = fpsRender;
-                    RenderGraph[offsetRenderGraph] = fpsRender;
+                    Performance.RenderGraph[offsetRenderGraph] = fpsRender;
                     offsetRenderGraph++;
-                    if (offsetRenderGraph >= RenderGraph.Length) offsetRenderGraph = 0;
+                    if (offsetRenderGraph >= Performance.RenderGraph.Length) offsetRenderGraph = 0;
                     DebugInformation["FpsCoroutine"] = fpsCoroutine;
-                    DebugInformation["Looplimit"] = loopLimit;
+                    DebugInformation["Looplimit"] = Performance.loopLimit ;
                     DebugInformation["ElapsedSeconds"] = sw.Elapsed.Seconds;
                     DebugInformation["RenderCount"] = RenderCount;
                     fpsLoop = 0;
@@ -206,13 +175,14 @@ namespace PoeHUD.Controllers
                         if(!CoroutineRunnerParallel.HasName(autorestartCoroutine.Name))
                             autorestartCoroutine.GetCopy().RunParallel();
                     }
+                    EntityListWrapper.UpdateCondition();
                 }
                 fpsLoop++;
                 DebugInformation["ElapsedMilliseconds"] = sw.ElapsedMilliseconds;
                 DebugInformation["DeltaTimeMs"] = (float) (sw.Elapsed.TotalMilliseconds - startFrameTime);
 
 
-                if (fpsLoop >= loopLimit)
+                if (fpsLoop >= Performance.loopLimit )
                 {
                     Thread.Sleep(1);
                 }
@@ -257,7 +227,7 @@ namespace PoeHUD.Controllers
                         }
                         catch (Exception e)
                         {
-                            DebugPlugin.LogMsg($"{e.Message}", 10);
+                            DebugPlugin.LogMsg($"Coroutine error: {e.Message}",6);
                         }
                     }
                     else
@@ -265,7 +235,7 @@ namespace PoeHUD.Controllers
                         await Task.Delay(100);
                     }
                 parallelFps++;
-                if (parallelFps >= Performance.ParallelCoroutineLimit)
+                if (parallelFps >= Performance.Settings.ParallelCoroutineLimit)
                 {
                     await Task.Delay(1);
                     DebugInformation["Parallel Coroutine FPS"] = parallelFps;

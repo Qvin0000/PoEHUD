@@ -1,7 +1,6 @@
 using System;
 using PoeHUD.Models.Interfaces;
 using System.Collections.Generic;
-using PoeHUD.Controllers;
 
 namespace PoeHUD.Poe
 {
@@ -12,9 +11,25 @@ namespace PoeHUD.Poe
         private long ComponentLookup =>  _componentLookup==-1 ?_componentLookup= M.ReadLong(Address, 0x48, 0x30) : _componentLookup;
         private long ComponentList => _componentList==-1 ? _componentList = M.ReadLong(Address + 0x8) : _componentList;
         private string _path;
-        public string Path => _path ?? (_path= M.ReadStringU(M.ReadLong(Address, 0x20)));
-        private bool _isValid;
-        public bool IsValid
+        private int readingPathAttempts = 0;
+        public string Path
+        {
+            get
+            {
+                if(string.IsNullOrEmpty(_path) && readingPathAttempts<5)
+                {
+                    _path = M.ReadStringU(M.ReadLong(Address, 0x20),(int) M.ReadLong(Address,0x30)*2);
+                    readingPathAttempts++;
+                }
+                return _path;
+            }
+        }
+
+       
+   
+
+        private bool _isValid; 
+        public bool IsValid 
         {
             get
             {
@@ -27,13 +42,18 @@ namespace PoeHUD.Poe
         public long Id => (long) (_id ?? (_id = ((long)M.ReadInt(Address + 0x40) << 32 ^ Address)));
         public int InventoryId => M.ReadInt(Address + 0x58);
 
+        //For test 
+        public long TestTypeId => M.ReadLong(Address, 0x30);
+        public long TestTypeId2 => M.ReadLong(Address, 0x38);
+        public long TestTypeId3 => M.ReadLong(Address, 0x48,0x38);
+        public long TestTypeId4 => M.ReadInt(Address, 0x54);
       
-        private long _nextUpdateTime;
+        private float _nextUpdateTime;
         void Experimental()
         {
-            if (GameController.Instance.MainTimer.ElapsedMilliseconds > _nextUpdateTime)
+            if (Game.MainTimer.ElapsedMilliseconds > _nextUpdateTime)
             {
-                _nextUpdateTime = GameController.Instance.MainTimer.ElapsedMilliseconds + 50;
+                _nextUpdateTime = Game.Performance.GetWaitTime(Game.Performance.meanLatency,33);
                 _isValid = M.ReadInt(Address, 0x20, 0) == 0x65004D;
             }
         }
@@ -49,7 +69,33 @@ namespace PoeHUD.Poe
             return HasComponent<T>(out addr);
         }
 
-        private bool HasComponent<T>(out long addr) where T : Component, new()
+        Dictionary<string,Component> cacheComponents = new Dictionary<string, Component>();
+        public bool HasComponent<T>(out long addr) where T : Component, new()
+        {
+            string name = typeof(T).Name;
+            if (cacheComponents.ContainsKey(name))
+            {
+                addr = cacheComponents[name].Address;
+                return true;
+            }
+            long componentLookup = ComponentLookup;
+            addr = M.ReadLong(componentLookup);
+            int i = 0;
+            while (!M.ReadString(M.ReadLong(addr + 0x10)).Equals(name))
+            {
+                addr = M.ReadLong(addr);
+                ++i;
+                if (addr == componentLookup || addr == 0 || addr == -1 || i >= 200)
+                    return false;
+            }
+            return true;
+        }
+        
+        
+        
+        
+
+        private bool HasComponent2<T>(out long addr) where T : Component, new()
         {
             string name = typeof(T).Name;
             long componentLookup = ComponentLookup;
@@ -67,6 +113,11 @@ namespace PoeHUD.Poe
 
         public T GetComponent<T>() where T : Component, new()
         {
+            string name = typeof(T).Name;
+            if (cacheComponents.ContainsKey(name))
+            {
+                return (T) cacheComponents[name];
+            }
             long addr;
             return HasComponent<T>(out addr) ? ReadObject<T>(ComponentList + M.ReadInt(addr + 0x18) * 8) : GetObject<T>(0);
         }

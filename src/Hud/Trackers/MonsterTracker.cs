@@ -19,6 +19,7 @@ namespace PoeHUD.Hud.Trackers
         private readonly Dictionary<EntityWrapper, MonsterConfigLine> alertTexts;
         private readonly Dictionary<MonsterRarity, Func<EntityWrapper, Func<string, string>, CreatureMapIcon>> iconCreators;
         private readonly Dictionary<string, MonsterConfigLine> modAlerts, typeAlerts;
+        private bool IsLab;
 
         public MonsterTracker(GameController gameController, Graphics graphics, MonsterTrackerSettings settings)
             : base(gameController, graphics, settings)
@@ -39,24 +40,25 @@ namespace PoeHUD.Hud.Trackers
             {
                 alreadyAlertedOf.Clear();
                 alertTexts.Clear();
+                IsLab = area.CurrentArea.DisplayName.Contains("Aspirant's");
             };
         }
 
         public Dictionary<string, MonsterConfigLine> LoadConfig(string path)
         {
             return LoadConfigBase(path, 5).ToDictionary(line => line[0], line =>
-             {
-                 var monsterConfigLine = new MonsterConfigLine
-                 {
-                     Text = line[1],
-                     SoundFile = line.ConfigValueExtractor(2),
-                     Color = line.ConfigColorValueExtractor(3),
-                     MinimapIcon = line.ConfigValueExtractor(4)
-                 };
-                 if (monsterConfigLine.SoundFile != null)
-                     Sounds.AddSound(monsterConfigLine.SoundFile);
-                 return monsterConfigLine;
-             });
+            {
+                var monsterConfigLine = new MonsterConfigLine
+                {
+                    Text = line[1],
+                    SoundFile = line.ConfigValueExtractor(2),
+                    Color = line.ConfigColorValueExtractor(3),
+                    MinimapIcon = line.ConfigValueExtractor(4)
+                };
+                if (monsterConfigLine.SoundFile != null)
+                    Sounds.AddSound(monsterConfigLine.SoundFile);
+                return monsterConfigLine;
+            });
         }
 
         public override void Render()
@@ -74,12 +76,12 @@ namespace PoeHUD.Hud.Trackers
                 var rectBackground = new RectangleF();
 
                 var groupedAlerts = alertTexts.Where(y => y.Key.IsAlive && y.Key.IsHostile).Select(y =>
-                {
-                    Vector2 delta = y.Key.GetComponent<Positioned>().GridPos - playerPos;
-                    double phi;
-                    double distance = delta.GetPolarCoordinates(out phi);
-                    return new { Dic = y, Phi = phi, Distance = distance };
-                })
+                    {
+                        Vector2 delta = y.Key.GetComponent<Positioned>().GridPos - playerPos;
+                        double phi;
+                        double distance = delta.GetPolarCoordinates(out phi);
+                        return new { Dic = y, Phi = phi, Distance = distance };
+                    })
                     .OrderBy(y => y.Distance)
                     .GroupBy(y => y.Dic.Value)
                     .Select(y => new { y.Key.Text, y.Key.Color, Monster = y.First(), Count = y.Count() }).ToList();
@@ -178,7 +180,6 @@ namespace PoeHUD.Hud.Trackers
 
         private static List<string> IgnoreEntitiesList = new List<string>()
         {
-            "GoddessOfJustice",
             "MonsterFireTrap2",
             "MonsterBlastRainTrap",
             "Metadata/Monsters/Frog/FrogGod/SilverOrb",
@@ -192,6 +193,8 @@ namespace PoeHUD.Hud.Trackers
             {
                 if (entity.Path.Contains(_entity))
                     return null;
+                if (IsLab && entity.Path.Contains("GoddessOfJustice"))
+                    return null;
             }
 
             if (!entity.IsHostile)
@@ -204,7 +207,7 @@ namespace PoeHUD.Hud.Trackers
 
             string overrideIcon = null;
             var life = entity.GetComponent<Life>();
-            if (life.HasBuff("hidden_monster"))
+            if (life.HasBuff2("hidden_monster"))
             {
                 overrideIcon = HiddenIcons[(int)monsterRarity];
             }

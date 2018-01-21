@@ -28,5 +28,6 @@ namespace PoeHUD.Hud.Dps
         public ToggleNode ShowInformationAround { get; set; }
         public ButtonNode ClearNode { get; set; } 
         public ToggleNode CalcAOE { get; set; } 
+
     }
 }

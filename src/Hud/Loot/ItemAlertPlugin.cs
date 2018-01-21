@@ -23,6 +23,7 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
+using PoeHUD.DebugPlug;
 
 namespace PoeHUD.Hud.Loot
 {
@@ -39,8 +40,11 @@ namespace PoeHUD.Hud.Loot
         public static bool holdKey;
         private readonly SettingsHub settingsHub;
         Coroutine coroutine;
-        public ItemAlertPlugin(GameController gameController, Graphics graphics, ItemAlertSettings settings, SettingsHub settingsHub)
-            : base(gameController, graphics, settings)
+        private long LimitUpdateItemAlert;
+        Dictionary<EntityWrapper, int> Errors = new Dictionary<EntityWrapper, int>();
+
+        public ItemAlertPlugin(GameController gameController, Graphics graphics, ItemAlertSettings settings,
+            SettingsHub settingsHub) : base(gameController, graphics, settings)
         {
             this.settingsHub = settingsHub;
             playedSoundsCache = new HashSet<long>();
@@ -55,44 +59,63 @@ namespace PoeHUD.Hud.Loot
             settings.FilePath.OnFileChanged += () =>
             {
                 PoeFilterInit(settings.FilePath);
-                (new Coroutine(RestartParseItemsAfterFilterChange(), nameof(ItemAlertPlugin), "Check items after filter change")).Run();
+                (new Coroutine(RestartParseItemsAfterFilterChange(), nameof(ItemAlertPlugin),
+                    "Check items after filter change")).Run();
             };
-
             (new Coroutine(() =>
-            {
-
-                while (parallelWork.TryDequeue(out var entity))
-                {
-                    IEntity item = entity.GetComponent<WorldItem>().ItemEntity;
-                    if (Settings.Alternative && !string.IsNullOrEmpty(Settings.FilePath))
                     {
+                        while (parallelWork.TryDequeue(out var entity))
                         {
-                            var result = visitor.Visit(item);
-                            if (result != null)
+                            IEntity item = entity.GetComponent<WorldItem>().ItemEntity;
+                            if (Settings.Alternative && !string.IsNullOrEmpty(Settings.FilePath))
                             {
-                                AlertDrawStyle drawStyle = result;
-                                PrepareForDrawingAndPlaySound(entity, drawStyle);
+                                if (!item.IsValid)
+                                {
+                                    DebugPlugin.LogMsg($"Item path wrong data: {item.Path}", 3);
+                                    if (Errors.TryGetValue(entity, out var countErrors))
+                                        Errors[entity]++;
+                                    else
+                                        Errors[entity] = 0;
+                                    if (Errors[entity] < 3) parallelWork.Enqueue(entity);
+                                    continue;
+                                }
+
+                                var result = visitor.Visit(item);
+                                if (result != null)
+                                {
+                                    AlertDrawStyle drawStyle = result;
+                                    PrepareForDrawingAndPlaySound(entity, drawStyle);
+                                }
+                            }
+                            else
+                            {
+                                ItemUsefulProperties props = initItem(item);
+                                if (props == null) return;
+                                if (props.ShouldAlert(currencyNames, Settings))
+                                {
+                                    AlertDrawStyle drawStyle = props.GetDrawStyle();
+                                    PrepareForDrawingAndPlaySound(entity, drawStyle);
+                                }
+
+                                Settings.Alternative.Value = false;
+                            }
+
+                            if (GameController.Game.MainTimer.ElapsedMilliseconds > LimitUpdateItemAlert)
+                            {
+                                LimitUpdateItemAlert = gameController.Game.MainTimer.ElapsedMilliseconds +
+                                                       gameController.Performance.Settings.ItemAlertLimitWork;
+                                break;
                             }
                         }
-                    }
-                    else
-                    {
-                        ItemUsefulProperties props = initItem(item);
-                        if (props == null)
-                            return;
 
-                        if (props.ShouldAlert(currencyNames, Settings))
-                        {
-                            AlertDrawStyle drawStyle = props.GetDrawStyle();
-                            PrepareForDrawingAndPlaySound(entity, drawStyle);
-                        }
-                        Settings.Alternative.Value = false;
-                    }
-                }
-                currentAlertsRender = new List<KeyValuePair<EntityWrapper, AlertDrawStyle>>(currentAlerts).Where(x=>x.Key.IsValid);
-            }, new WaitTime(50), nameof(ItemAlertPlugin), "Parse visit parallel") {Priority = CoroutinePriority.High}).AutoRestart(gameController.CoroutineRunnerParallel).RunParallel();
+                        currentAlertsRender =
+                            new List<KeyValuePair<EntityWrapper, AlertDrawStyle>>(currentAlerts).Where(x =>
+                                x.Key.IsValid);
+                    }, new WaitTime(GameController.Performance.Settings.ItemAlertUpdateTime), nameof(ItemAlertPlugin),
+                    "Parse visit parallel") {Priority = CoroutinePriority.High})
+                .AutoRestart(gameController.CoroutineRunnerParallel)
+                .RunParallel();
         }
-
 
         IEnumerator RestartParseItemsAfterFilterChange()
         {
@@ -119,7 +142,7 @@ namespace PoeHUD.Hud.Loot
 
             yield return null;
         }
-        
+
         private void PoeFilterInit(string path)
         {
             try
@@ -147,8 +170,8 @@ namespace PoeHUD.Hud.Loot
             {
                 Settings.FilePath.Value = string.Empty;
                 Settings.Alternative.Value = false;
-                MessageBox.Show($"Line: {ex.Line}:{ex.CharPositionInLine}, " +
-                                $"{ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show($"Line: {ex.Line}:{ex.CharPositionInLine}, " + $"{ex.Message}", "Error",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
                 visitor = null;
             }
             catch (Exception ex)
@@ -158,6 +181,8 @@ namespace PoeHUD.Hud.Loot
                 MessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
+
+        // List<KeyValuePair<EntityWrapper, AlertDrawStyle>> alerts = new List<KeyValuePair<EntityWrapper, AlertDrawStyle>>(10240);
         public override void Dispose()
         {
             GameController.Area.OnAreaChange -= OnAreaChange;
@@ -175,6 +200,7 @@ namespace PoeHUD.Hud.Loot
             {
                 holdKey = false;
             }
+
             if (!Settings.Enable)
             {
                 return;
@@ -183,17 +209,18 @@ namespace PoeHUD.Hud.Loot
             if (Settings.Enable)
             {
                 Positioned pos = GameController.Player.GetComponent<Positioned>();
-                if (pos == null)
-                    return;
+                if (pos == null) return;
                 Vector2 playerPos = pos.GridPos;
                 Vector2 position = StartDrawPointFunc();
                 const int BOTTOM_MARGIN = 2;
                 bool shouldUpdate = false;
-
                 if (Settings.BorderSettings.Enable)
                 {
-                    Dictionary<EntityWrapper, AlertDrawStyle> tempCopy = new Dictionary<EntityWrapper, AlertDrawStyle>(currentAlerts);
-                    var keyValuePairs = tempCopy.AsParallel().Where(x => x.Key != null && x.Key.Address != 0 && x.Key.IsValid).ToList();
+                    Dictionary<EntityWrapper, AlertDrawStyle> tempCopy =
+                        new Dictionary<EntityWrapper, AlertDrawStyle>(currentAlerts);
+                    var keyValuePairs = tempCopy.AsParallel()
+                        .Where(x => x.Key != null && x.Key.Address != 0 && x.Key.IsValid)
+                        .ToList();
                     foreach (var kv in keyValuePairs)
                     {
                         if (DrawBorder(kv.Key.Address) && !shouldUpdate)
@@ -202,6 +229,7 @@ namespace PoeHUD.Hud.Loot
                         }
                     }
                 }
+
                 foreach (var kv in currentAlertsRender)
                 {
                     if (kv.Key == null) continue;
@@ -273,19 +301,16 @@ namespace PoeHUD.Hud.Loot
                                     Color TextColor = kv.Value.TextColor;
                                     Color BorderColor = kv.Value.BorderColor;
                                     Color BackgroundColor = kv.Value.BackgroundColor;
-
                                     if (Settings.DimOtherByPercentToggle)
                                     {
                                         // edit values to new ones
                                         double ReduceByPercent = (double) Settings.DimOtherByPercent / 100;
-
                                         TextColor = ReduceNumbers(TextColor, ReduceByPercent);
                                         BorderColor = ReduceNumbers(BorderColor, ReduceByPercent);
                                         BackgroundColor = ReduceNumbers(BackgroundColor, ReduceByPercent);
 
                                         // backgrounds with low alpha start to look a little strange when dark so im adding an alpha threshold
-                                        if (BackgroundColor.A < 210)
-                                            BackgroundColor.A = 210;
+                                        if (BackgroundColor.A < 210) BackgroundColor.A = 210;
                                     }
 
                                     // Complete new KeyValuePair with new stuff
@@ -293,19 +318,19 @@ namespace PoeHUD.Hud.Loot
                                         kv.Value.BorderWidth, BorderColor, BackgroundColor, kv.Value.IconIndex);
                                     KeyValuePair<EntityWrapper, AlertDrawStyle> NewKV =
                                         new KeyValuePair<EntityWrapper, AlertDrawStyle>(kv.Key, ModifiedDrawStyle);
-
                                     position = DrawText(playerPos, position, BOTTOM_MARGIN, NewKV, text);
                                 }
                             }
                         }
                     }
                 }
-                Size = new Size2F(0, position.Y); //bug absent width
 
+                Size = new Size2F(0, position.Y); //bug absent width
                 if (shouldUpdate)
                 {
                     currentLabels = GameController.Game.IngameState.IngameUi.ItemsOnGroundLabels
-                        .GroupBy(y => y.ItemOnGround.Address).ToDictionary(y => y.Key, y => y.First());
+                        .GroupBy(y => y.ItemOnGround.Address)
+                        .ToDictionary(y => y.Key, y => y.First());
                 }
             }
         }
@@ -313,12 +338,10 @@ namespace PoeHUD.Hud.Loot
         private Color ReduceNumbers(Color oldColor, double percent)
         {
             Color newColor = oldColor;
-
-            newColor.R = (byte)((double)oldColor.R - ((double)oldColor.R * percent));
-            newColor.G = (byte)((double)oldColor.G - ((double)oldColor.G * percent));
-            newColor.B = (byte)((double)oldColor.B - ((double)oldColor.B * percent));
-            newColor.A = (byte)((double)oldColor.A - (((double)oldColor.A / 10) * percent));
-
+            newColor.R = (byte) ((double) oldColor.R - ((double) oldColor.R * percent));
+            newColor.G = (byte) ((double) oldColor.G - ((double) oldColor.G * percent));
+            newColor.B = (byte) ((double) oldColor.B - ((double) oldColor.B * percent));
+            newColor.A = (byte) ((double) oldColor.A - (((double) oldColor.A / 10) * percent));
             return newColor;
         }
 
@@ -332,13 +355,14 @@ namespace PoeHUD.Hud.Loot
             {
                 position.Y += itemSize.Y + BOTTOM_MARGIN;
             }
+
             return position;
         }
 
         protected override void OnEntityAdded(EntityWrapper entity)
         {
-            if (Settings.Enable && entity != null && !GameController.Area.CurrentArea.IsTown
-                && !currentAlerts.ContainsKey(entity) && entity.HasComponent<WorldItem>())
+            if (Settings.Enable && entity != null && !GameController.Area.CurrentArea.IsTown &&
+                !currentAlerts.ContainsKey(entity) && entity.HasComponent<WorldItem>())
             {
                 parallelWork.Enqueue(entity);
             }
@@ -348,8 +372,10 @@ namespace PoeHUD.Hud.Loot
         {
             if (!entity.IsValid) return;
             currentAlerts.Add(entity, drawStyle);
-            CurrentIcons[entity] = new MapIcon(entity, new HudTexture("currency.png", Settings.LootIconBorderColor ? drawStyle.BorderColor : drawStyle.TextColor), () => Settings.ShowItemOnMap, Settings.LootIcon);
-
+            CurrentIcons[entity] = new MapIcon(entity,
+                new HudTexture("currency.png",
+                    Settings.LootIconBorderColor ? drawStyle.BorderColor : drawStyle.TextColor),
+                () => Settings.ShowItemOnMap, Settings.LootIcon);
             if (Settings.PlaySound && !playedSoundsCache.Contains(entity.Id))
             {
                 playedSoundsCache.Add(entity.Id);
@@ -369,16 +395,16 @@ namespace PoeHUD.Hud.Loot
             {
                 return new HashSet<CraftingBase>();
             }
+
             var hashSet = new HashSet<CraftingBase>();
             var parseErrors = new List<string>();
             string[] array = File.ReadAllLines("config/crafting_bases.txt");
-            foreach (string text in array.Select(x => x.Trim()).Where(x => !string.IsNullOrWhiteSpace(x) && !x.StartsWith("#")))
+            foreach (string text in array.Select(x => x.Trim())
+                .Where(x => !string.IsNullOrWhiteSpace(x) && !x.StartsWith("#")))
             {
                 string[] parts = text.Split(',');
                 string itemName = parts[0].Trim();
-
-                var item = new CraftingBase { Name = itemName };
-
+                var item = new CraftingBase {Name = itemName};
                 int tmpVal;
                 if (parts.Length > 1 && int.TryParse(parts[1], out tmpVal))
                 {
@@ -396,7 +422,8 @@ namespace PoeHUD.Hud.Loot
                     item.Rarities = new ItemRarity[parts.Length - 3];
                     for (int i = RARITY_POSITION; i < parts.Length; i++)
                     {
-                        if (item.Rarities != null && !Enum.TryParse(parts[i], true, out item.Rarities[i - RARITY_POSITION]))
+                        if (item.Rarities != null &&
+                            !Enum.TryParse(parts[i], true, out item.Rarities[i - RARITY_POSITION]))
                         {
                             parseErrors.Add("Incorrect rarity definition at line: " + text);
                             item.Rarities = null;
@@ -412,7 +439,8 @@ namespace PoeHUD.Hud.Loot
 
             if (parseErrors.Any())
             {
-                throw new Exception("Error parsing config/crafting_bases.txt\r\n" + string.Join(Environment.NewLine, parseErrors));
+                throw new Exception("Error parsing config/crafting_bases.txt\r\n" +
+                                    string.Join(Environment.NewLine, parseErrors));
             }
 
             return hashSet;
@@ -424,9 +452,11 @@ namespace PoeHUD.Hud.Loot
             {
                 return null;
             }
+
             var hashSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             string[] lines = File.ReadAllLines("config/currency.txt");
-            lines.Where(x => !string.IsNullOrWhiteSpace(x) && !x.StartsWith("#")).ForEach(x => hashSet.Add(x.Trim().ToLowerInvariant()));
+            lines.Where(x => !string.IsNullOrWhiteSpace(x) && !x.StartsWith("#"))
+                .ForEach(x => hashSet.Add(x.Trim().ToLowerInvariant()));
             return hashSet;
         }
 
@@ -454,9 +484,11 @@ namespace PoeHUD.Hud.Loot
                         if (Settings.BorderSettings.ShowTimer && timeLeft.TotalMilliseconds > 0)
                         {
                             borderColor = Settings.BorderSettings.CantPickUpBorderColor;
-                            Graphics.DrawText(timeLeft.ToString(@"mm\:ss"), Settings.BorderSettings.TimerTextSize, rect.TopRight.Translate(4, 0));
+                            Graphics.DrawText(timeLeft.ToString(@"mm\:ss"), Settings.BorderSettings.TimerTextSize,
+                                rect.TopRight.Translate(4, 0));
                         }
                     }
+
                     Graphics.DrawFrame(rect, Settings.BorderSettings.BorderWidth, borderColor);
                 }
             }
@@ -464,10 +496,12 @@ namespace PoeHUD.Hud.Loot
             {
                 shouldUpdate = true;
             }
+
             return shouldUpdate;
         }
 
-        private Vector2 DrawItem(AlertDrawStyle drawStyle, Vector2 delta, Vector2 position, Vector2 padding, string text)
+        private Vector2 DrawItem(AlertDrawStyle drawStyle, Vector2 delta, Vector2 position, Vector2 padding,
+            string text)
         {
             padding.X -= drawStyle.BorderWidth;
             padding.Y -= drawStyle.BorderWidth;
@@ -475,19 +509,22 @@ namespace PoeHUD.Hud.Loot
             double distance = delta.GetPolarCoordinates(out phi);
             float compassOffset = Settings.TextSize + 8;
             Vector2 textPos = position.Translate(-padding.X - compassOffset, padding.Y);
-            Size2 textSize = Graphics.DrawText(text, Settings.TextSize, textPos, drawStyle.TextColor, FontDrawFlags.Right);
-            if (textSize == new Size2()) { return new Vector2(); }
+            Size2 textSize =
+                Graphics.DrawText(text, Settings.TextSize, textPos, drawStyle.TextColor, FontDrawFlags.Right);
+            if (textSize == new Size2())
+            {
+                return new Vector2();
+            }
+
             int iconSize = drawStyle.IconIndex >= 0 ? textSize.Height : 0;
             float fullHeight = textSize.Height + 2 * padding.Y + 2 * drawStyle.BorderWidth;
             float fullWidth = textSize.Width + 2 * padding.X + iconSize + 2 * drawStyle.BorderWidth + compassOffset;
             var boxRect = new RectangleF(position.X - fullWidth, position.Y, fullWidth - compassOffset, fullHeight);
             Graphics.DrawBox(boxRect, drawStyle.BackgroundColor);
-
             RectangleF rectUV = GetDirectionsUV(phi, distance);
             var rectangleF = new RectangleF(position.X - padding.X - compassOffset + 6, position.Y + padding.Y,
                 textSize.Height, textSize.Height);
             Graphics.DrawImage("directions.png", rectangleF, rectUV);
-
             if (iconSize > 0)
             {
                 const float ICONS_IN_SPRITE = 4;
@@ -496,27 +533,26 @@ namespace PoeHUD.Hud.Loot
                 var uv = new RectangleF(iconX, 0, (drawStyle.IconIndex + 1) / ICONS_IN_SPRITE - iconX, 1);
                 Graphics.DrawImage("item_icons.png", iconPos, uv);
             }
+
             if (drawStyle.BorderWidth > 0)
             {
                 Graphics.DrawFrame(boxRect, drawStyle.BorderWidth, drawStyle.BorderColor);
             }
+
             return new Vector2(fullWidth, fullHeight);
         }
 
         private ItemUsefulProperties initItem(IEntity item)
         {
             BaseItemType bit = GameController.Files.BaseItemTypes.Translate(item.Path);
-            if (bit == null)
-                return null;
-
+            if (bit == null) return null;
             string name = bit.BaseName;
             CraftingBase craftingBase = new CraftingBase();
             if (Settings.Crafting)
             {
-                foreach (CraftingBase cb in craftingBases
-                    .Where(cb => cb.Name
-                    .Equals(name, StringComparison.InvariantCultureIgnoreCase) || new Regex(cb.Name)
-                    .Match(name).Success))
+                foreach (CraftingBase cb in craftingBases.Where(cb =>
+                    cb.Name.Equals(name, StringComparison.InvariantCultureIgnoreCase) ||
+                    new Regex(cb.Name).Match(name).Success))
                 {
                     craftingBase = cb;
                     break;
@@ -537,12 +573,14 @@ namespace PoeHUD.Hud.Loot
                 {
                     return null;
                 }
+
                 text = kv.Value.Text;
             }
             else
             {
                 text = labelForEntity.Text;
             }
+
             return text;
         }
 
@@ -552,6 +590,7 @@ namespace PoeHUD.Hud.Loot
             currentLabels.Clear();
             currentAlerts.Clear();
             CurrentIcons.Clear();
+            parallelWork = new ConcurrentQueue<EntityWrapper>();
         }
     }
 }

@@ -4,13 +4,19 @@ using SharpDX;
 using SharpDX.Direct3D9;
 using SharpDX.Windows;
 using System;
+using System.Drawing;
+using System.Numerics;
 using System.Threading;
 using System.Windows.Forms;
 using ImGuiNET;
 using System.Runtime.InteropServices;
 using PoeHUD.Controllers;
+using PoeHUD.DebugPlug;
 using PoeHUD.Framework.InputHooks;
+using PoeHUD.Framework.InputHooks.Utils;
+using PoeHUD.Hud.Menu;
 using Color = SharpDX.Color;
+using Point = System.Drawing.Point;
 using RectangleF = SharpDX.RectangleF;
 using Vector2 = SharpDX.Vector2;
 using ImVec2 = System.Numerics.Vector2;
@@ -52,7 +58,7 @@ namespace PoeHUD.Hud.UI
                 PresentationInterval = PresentInterval.One,
                 MultiSampleType = MultisampleType.None,
                 MultiSampleQuality = 0,
-                PresentFlags = PresentFlags.LockableBackBuffer
+                PresentFlags =PresentFlags.LockableBackBuffer
             };
             direct3D = new Direct3DEx();
             device = new DeviceEx(direct3D, 0, DeviceType.Hardware, form.Handle, CREATE_FLAGS, presentParameters);
@@ -60,7 +66,7 @@ namespace PoeHUD.Hud.UI
             textureRenderer = new TextureRenderer(device);
 
 
-
+           
             var io = ImGui.GetIO();
             io.FontAtlas.AddDefaultFont();
             SetStyle();
@@ -71,14 +77,14 @@ namespace PoeHUD.Hud.UI
 
             KeyboardHook.KeyDown += OnKeyboardHookOnKeyDown;
             KeyboardHook.KeyUp += OnKeyboardHookOnKeyUp;
-
+            
             MouseHook.MouseWheel += OnMouseHookOnMouseWheel;
             io.DisplaySize = new ImVec2(form.ClientSize.Width, form.ClientSize.Height);
             io.DisplayFramebufferScale = new ImVec2(form.ClientSize.Width * 1.0f / form.ClientSize.Height);
-
-
+                
+            
             io.DeltaTime = 1f / 60f;
-
+          
             renderLocker.Reset();
         }
 
@@ -88,14 +94,14 @@ namespace PoeHUD.Hud.UI
             //style.ChildWindowRounding = 3f;
             style.GrabRounding = 0f;
             style.WindowRounding = 0f;
-
+          
             style.FrameRounding = 3f;
-            style.WindowTitleAlign = Align.Center;
-
-            ImGui.PushStyleColor(ColorTarget.Text, new ImVec4(0.82f, 0.81f, 0.81f, 1.00f));
+               
+           
+			ImGui.PushStyleColor(ColorTarget.Text, new ImVec4(0.82f, 0.81f, 0.81f, 1.00f));
             ImGui.PushStyleColor(ColorTarget.TextDisabled, new ImVec4(0.50f, 0.50f, 0.50f, 1.00f));
             ImGui.PushStyleColor(ColorTarget.WindowBg, new ImVec4(0.26f, 0.26f, 0.26f, 0.78f));
-            ImGui.PushStyleColor(ColorTarget.ChildWindowBg, new ImVec4(0.28f, 0.28f, 0.28f, 0.8f));
+            ImGui.PushStyleColor(ColorTarget.ChildBg, new ImVec4(0.28f, 0.28f, 0.28f, 0.8f));
             ImGui.PushStyleColor(ColorTarget.PopupBg, new ImVec4(0.26f, 0.26f, 0.26f, 1.00f));
             ImGui.PushStyleColor(ColorTarget.Border, new ImVec4(0.26f, 0.26f, 0.26f, 1.00f));
             ImGui.PushStyleColor(ColorTarget.BorderShadow, new ImVec4(0.26f, 0.26f, 0.26f, 1.00f));
@@ -110,7 +116,6 @@ namespace PoeHUD.Hud.UI
             ImGui.PushStyleColor(ColorTarget.ScrollbarGrab, new ImVec4(0.36f, 0.36f, 0.36f, 1.00f));
             ImGui.PushStyleColor(ColorTarget.ScrollbarGrabHovered, new ImVec4(0.36f, 0.36f, 0.36f, 1.00f));
             ImGui.PushStyleColor(ColorTarget.ScrollbarGrabActive, new ImVec4(0.36f, 0.36f, 0.36f, 1.00f));
-            ImGui.PushStyleColor(ColorTarget.ComboBg, new ImVec4(0.32f, 0.32f, 0.32f, 1.00f));
             ImGui.PushStyleColor(ColorTarget.CheckMark, new ImVec4(0.78f, 0.78f, 0.78f, 1.00f));
             ImGui.PushStyleColor(ColorTarget.SliderGrab, new ImVec4(0.74f, 0.74f, 0.74f, 1.00f));
             ImGui.PushStyleColor(ColorTarget.SliderGrabActive, new ImVec4(0.74f, 0.74f, 0.74f, 1.00f));
@@ -145,7 +150,7 @@ namespace PoeHUD.Hud.UI
                 upOrDown = -1;
             }
             var delta = upOrDown;
-            ImGui.GetIO().MouseWheel = delta;
+           ImGui.GetIO().MouseWheel = delta;
         }
         void OnKeyboardHookOnKeyDown(KeyInfo info)
         {
@@ -155,22 +160,22 @@ namespace PoeHUD.Hud.UI
                 if (io.GetNativePointer()->WantTextInput == 1) //|| io.GetNativePointer()->WantCaptureKeyboard == 1 )
                 {
                     KeyboardHook.Block = true;
-                    io.KeysDown[(int)info.Keys] = true;
+                    io.KeysDown[(int) info.Keys] = true;
                 }
                 else
                     KeyboardHook.Block = false;
             }
         }
         void OnKeyboardHookOnKeyUp(KeyInfo info)
-        {
+        { 
             var io = ImGui.GetIO();
             unsafe
             {
                 if (io.GetNativePointer()->WantTextInput == 1) //|| io.GetNativePointer()->WantCaptureKeyboard == 1   )
                 {
                     KeyboardHook.Block = true;
-                    io.KeysDown[(int)info.Keys] = false;
-                    ImGui.AddInputCharacter((char)info.Keys);
+                    io.KeysDown[(int) info.Keys] = false;
+                    ImGui.AddInputCharacter((char) info.Keys);
                 }
                 else
                     KeyboardHook.Block = false;
@@ -180,31 +185,31 @@ namespace PoeHUD.Hud.UI
         {
             var io = ImGui.GetIO();
             io.AltPressed = Control.ModifierKeys == Keys.Alt;
-            io.CtrlPressed = Control.ModifierKeys == Keys.Control;
-            io.ShiftPressed = Control.ModifierKeys == Keys.Shift;
+            io.CtrlPressed =  Control.ModifierKeys == Keys.Control;
+            io.ShiftPressed =  Control.ModifierKeys == Keys.Shift;
         }
         private void SetOpenTKKeyMappings(IO io)
         {
-
-            io.KeyMap[GuiKey.Tab] = (int)Keys.Tab;
-            io.KeyMap[GuiKey.LeftArrow] = (int)Keys.Left;
-            io.KeyMap[GuiKey.RightArrow] = (int)Keys.Right;
-            io.KeyMap[GuiKey.UpArrow] = (int)Keys.Up;
-            io.KeyMap[GuiKey.DownArrow] = (int)Keys.Down;
-            io.KeyMap[GuiKey.PageUp] = (int)Keys.PageUp;
-            io.KeyMap[GuiKey.PageDown] = (int)Keys.PageDown;
-            io.KeyMap[GuiKey.Home] = (int)Keys.Home;
-            io.KeyMap[GuiKey.End] = (int)Keys.End;
-            io.KeyMap[GuiKey.Delete] = (int)Keys.Delete;
-            io.KeyMap[GuiKey.Backspace] = (int)Keys.Back;
-            io.KeyMap[GuiKey.Enter] = (int)Keys.Enter;
-            io.KeyMap[GuiKey.Escape] = (int)Keys.Escape;
-            io.KeyMap[GuiKey.A] = (int)Keys.A;
-            io.KeyMap[GuiKey.C] = (int)Keys.C;
-            io.KeyMap[GuiKey.V] = (int)Keys.V;
-            io.KeyMap[GuiKey.X] = (int)Keys.X;
-            io.KeyMap[GuiKey.Y] = (int)Keys.Y;
-            io.KeyMap[GuiKey.Z] = (int)Keys.Z;
+         
+                            io.KeyMap[GuiKey.Tab] = (int) Keys.Tab;
+                            io.KeyMap[GuiKey.LeftArrow] = (int) Keys.Left;
+                            io.KeyMap[GuiKey.RightArrow] = (int) Keys.Right;
+                            io.KeyMap[GuiKey.UpArrow] = (int) Keys.Up;
+                            io.KeyMap[GuiKey.DownArrow] = (int) Keys.Down;
+                            io.KeyMap[GuiKey.PageUp] = (int) Keys.PageUp;
+                            io.KeyMap[GuiKey.PageDown] = (int) Keys.PageDown;
+                            io.KeyMap[GuiKey.Home] = (int) Keys.Home;
+                            io.KeyMap[GuiKey.End] = (int) Keys.End;
+                            io.KeyMap[GuiKey.Delete] = (int) Keys.Delete;
+                            io.KeyMap[GuiKey.Backspace] = (int) Keys.Back;
+                            io.KeyMap[GuiKey.Enter] = (int) Keys.Enter;
+                            io.KeyMap[GuiKey.Escape] = (int) Keys.Escape;
+                            io.KeyMap[GuiKey.A] = (int) Keys.A;
+                            io.KeyMap[GuiKey.C] = (int) Keys.C;
+                            io.KeyMap[GuiKey.V] = (int) Keys.V;
+                            io.KeyMap[GuiKey.X] = (int) Keys.X;
+                            io.KeyMap[GuiKey.Y] = (int) Keys.Y;
+                            io.KeyMap[GuiKey.Z] = (int) Keys.Z;
         }
 
 
@@ -228,21 +233,21 @@ namespace PoeHUD.Hud.UI
                     UpdateModifiers();
                 }
                 UpdateImGuiInput();
-
+                
                 device.Clear(ClearFlags.Target, Color.Transparent, 0, 0);
                 device.SetRenderState(RenderState.AlphaBlendEnable, true);
                 device.SetRenderState(RenderState.CullMode, Cull.Clockwise);
-
-
+             
+                
                 device.BeginScene();
                 fontRenderer.Begin();
                 textureRenderer.Begin();
                 try
-                {
+                { 
                     ImGui.NewFrame();
                     Render.SafeInvoke();
                     ImGui.Render();
-                    DrawImGui();
+                    textureRenderer.DrawImGui();
                 }
                 finally
                 {
@@ -262,43 +267,39 @@ namespace PoeHUD.Hud.UI
         private void UpdateImGuiInput()
         {
             var io = ImGui.GetIO();
-
+          
             if (_form.Visible)
-            {
-                var point = Control.MousePosition;
-                var windowPoint = GameController.Instance.Window.ScreenToClient(point.X, point.Y);
-                io.MousePosition = new System.Numerics.Vector2(windowPoint.X,
-                    windowPoint.Y);
+            {  var  point = Control.MousePosition;
+                var windowPoint = GameController.Instance.Window.ScreenToClient(point.X,point.Y);
+                io.MousePosition = new System.Numerics.Vector2(windowPoint.X ,
+                    windowPoint.Y );
             }
             else
             {
                 io.MousePosition = new System.Numerics.Vector2(-1f, -1f);
             }
-
-
-
+        
+            
+            
             UpdateModifiers();
             //Mouse button for work with HUD.
             io.MouseDown[0] = Form.MouseButtons == MouseButtons.Middle;
             io.MouseDown[1] = Form.MouseButtons == MouseButtons.Right;
-            // io.MouseDown[2] = Form.MouseButtons == MouseButtons.Middle;
-
-
+           // io.MouseDown[2] = Form.MouseButtons == MouseButtons.Middle;
+            
+           
         }
-
-
-
-
+  
         public void Dispose()
         {
-
+            
             if (!device.IsDisposed)
             {
                 running = false;
                 renderLocker.Wait();
                 renderLocker.Dispose();
-                device.Dispose();
-                direct3D.Dispose();
+               device.Dispose();
+                 direct3D.Dispose();
                 fontRenderer.Dispose();
                 textureRenderer.Dispose();
             }
@@ -314,13 +315,13 @@ namespace PoeHUD.Hud.UI
             {
                 presentParameters.BackBufferWidth = width;
                 presentParameters.BackBufferHeight = height;
-                GameController.Instance.Cache.ForceUpdateWindowCache();
+                //GameController.Instance.Cache.ForceUpdateWindowCache();
                 var io = ImGui.GetIO();
-                io.DisplaySize = new System.Numerics.Vector2(width, height);
-                io.DisplayFramebufferScale = new System.Numerics.Vector2(width * 1.0f / height);
+                io.DisplaySize = new System.Numerics.Vector2(width,height);
+                io.DisplayFramebufferScale = new System.Numerics.Vector2(width* 1.0f / height);
                 resized = true;
             }
-
+            
         }
 
         public Size2 DrawText(string text, int height, Vector2 position, Color color, FontDrawFlags align = FontDrawFlags.Left)
@@ -384,19 +385,6 @@ namespace PoeHUD.Hud.UI
             }
         }
 
-        public void DrawPluginImage(string fileName, Vertexes.TexturedVertex[] data, Color color, float repeatX = 1f)
-        {
-            try
-            {
-                textureRenderer.DrawImage(fileName, data, color, repeatX);
-            }
-            catch (Exception e)
-            {
-                MessageBox.Show($"Failed to load texture {fileName}: {e.Message}");
-                Environment.Exit(0);
-            }
-        }
-
         public void DrawImage(string fileName, RectangleF rectangle, RectangleF uvCoords)
         {
             DrawImage(fileName, rectangle, uvCoords, Color.White);
@@ -441,20 +429,16 @@ namespace PoeHUD.Hud.UI
             }
         }
 
-        public void DrawImGui()
-        {
-
-            textureRenderer.DrawImGui();
-        }
+        
         public unsafe static void memcpy(void* dst, void* src, int count)
         {
             const int blockSize = 4096;
             byte[] block = new byte[blockSize];
             byte* d = (byte*)dst, s = (byte*)src;
-            for (int i = 0, step; i < count; i += step, d += step, s += step)
+            for(int i = 0, step; i < count; i += step, d += step, s += step)
             {
                 step = count - i;
-                if (step > blockSize)
+                if(step > blockSize)
                 {
                     step = blockSize;
                 }
@@ -465,7 +449,7 @@ namespace PoeHUD.Hud.UI
         private unsafe void PrepareTextureImGui()
         {
             var io = ImGui.GetIO();
-
+        
             var texDataAsRgba32 = io.FontAtlas.GetTexDataAsRGBA32();
             io.DisplaySize = new ImVec2(_form.ClientSize.Width, _form.ClientSize.Height);
             var t = new Texture(device, texDataAsRgba32.Width, texDataAsRgba32.Height, 1, Usage.Dynamic,
@@ -473,19 +457,23 @@ namespace PoeHUD.Hud.UI
             var rect = t.LockRectangle(0, LockFlags.None);
             for (int y = 0; y < texDataAsRgba32.Height; y++)
             {
-                memcpy((byte*)(rect.DataPointer + rect.Pitch * y), texDataAsRgba32.Pixels + (texDataAsRgba32.Width * texDataAsRgba32.BytesPerPixel) * y, (texDataAsRgba32.Width * texDataAsRgba32.BytesPerPixel));
+                memcpy((byte*) (rect.DataPointer+rect.Pitch*y),texDataAsRgba32.Pixels + (texDataAsRgba32.Width*texDataAsRgba32.BytesPerPixel)*y,(texDataAsRgba32.Width * texDataAsRgba32.BytesPerPixel));
             }
-
+              
             t.UnlockRectangle(0);
             io.FontAtlas.SetTexID(t.NativePointer);
         }
 
-        public void DrawImage(byte[] bytes, RectangleF rectangle, Color color, string name)
+        public void DisponseTexture(string name)
         {
-
+            textureRenderer.DisponseTexture(name);
+        }
+        
+        public void DrawImage(ref byte[] bytes, RectangleF rectangle, Color color,string name)
+        {
             try
             {
-                textureRenderer.DrawImage(bytes, rectangle, color, name);
+                textureRenderer.DrawImage(ref bytes, rectangle, color,name);
             }
             catch (Exception e)
             {

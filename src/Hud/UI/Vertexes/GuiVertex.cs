@@ -12,14 +12,14 @@ namespace PoeHUD.Hud.UI.Vertexes
             new VertexElement(0, 0, DeclarationType.Float2, DeclarationMethod.Default, DeclarationUsage.Position, 0),
             new VertexElement(0, 8, DeclarationType.Float2, DeclarationMethod.Default, DeclarationUsage.TextureCoordinate, 0),
             new VertexElement(0, 16, DeclarationType.Color, DeclarationMethod.Default, DeclarationUsage.Color, 0),
-
+     
             VertexElement.VertexDeclarationEnd
         };
 
         public Vector2 pos;
         public Vector2 uv;
         public uint col;
-
+      
 
         public GuiVertex(float x, float y, float u, float v, uint diffuse)
         {
@@ -28,4 +28,4 @@ namespace PoeHUD.Hud.UI.Vertexes
             this.col = diffuse;
         }
     }
-}
+}   

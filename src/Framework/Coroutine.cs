@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections;
+using System.Diagnostics;
 using PoeHUD.Controllers;
 using PoeHUD.Framework.Helpers;
 
@@ -134,7 +135,7 @@ namespace PoeHUD.Framework
 
     public class WaitRender : YieldBase
     {
-        private long _howManyRenderCountWait;
+        private readonly long _howManyRenderCountWait;
         public long HowManyRenderCountWait => _howManyRenderCountWait;
 
         public WaitRender(long howManyRenderCountWait = 1)
@@ -145,8 +146,8 @@ namespace PoeHUD.Framework
 
         public sealed override IEnumerator GetEnumerator()
         {
-            var wait = GameController.Instance.RenderCount +_howManyRenderCountWait;
-            while (GameController.Instance.RenderCount < wait)
+            var wait = GameController.RenderCount +_howManyRenderCountWait;
+            while (GameController.RenderCount < wait)
             {
                 yield return null;
             }
@@ -183,8 +184,8 @@ namespace PoeHUD.Framework
 
         public sealed override IEnumerator GetEnumerator()
         {
-            var wait = GameController.Instance.MainTimer.ElapsedMilliseconds + _milliseconds;
-            while (GameController.Instance.MainTimer.ElapsedMilliseconds < wait)
+            var wait = sw.ElapsedMilliseconds + _milliseconds;
+            while (sw.ElapsedMilliseconds < wait)
             {
                 yield return null;
             }
@@ -193,6 +194,7 @@ namespace PoeHUD.Framework
 
     public abstract class YieldBase : IEnumerable, IEnumerator
     {
+       protected static readonly Stopwatch sw = Stopwatch.StartNew();
         public bool MoveNext() 
         { 
             return Current != null && ((IEnumerator) Current).MoveNext(); 

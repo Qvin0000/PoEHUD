@@ -9,6 +9,9 @@ namespace PoeHUD.Poe.Components
 {
     public class Stats : Component
     {
+        
+            public long statPtrStart => M.ReadLong(Address + 0x50);
+            public long statPtrEnd => M.ReadLong(Address + 0x58);
         public Dictionary<PlayerStats, int> AllStats
         {
             get
@@ -17,9 +20,7 @@ namespace PoeHUD.Poe.Components
                 return result;
             }
         }
-
-        private int Timeout = 100;
-        private long nextUpdate;
+        private float nextUpdate;
         Dictionary<PlayerStats, int> result = new Dictionary<PlayerStats, int>();
 
 
@@ -42,9 +43,9 @@ namespace PoeHUD.Poe.Components
 
         void UpdateAllDates()
         {
-            if (GameController.Instance.MainTimer.ElapsedMilliseconds > nextUpdate)
+            if (Game.MainTimer.ElapsedMilliseconds > nextUpdate)
             {
-                nextUpdate = GameController.Instance.MainTimer.ElapsedMilliseconds + Timeout;
+                nextUpdate = Game.Performance.GetWaitTime(Game.Performance.meanLatency*3);
                 long ptrStart = M.ReadLong(Address + 0x50);
                 long ptrEnd = M.ReadLong(Address + 0x58);
                 var bytes = M.ReadBytes(ptrStart, (int) (ptrEnd - ptrStart));
