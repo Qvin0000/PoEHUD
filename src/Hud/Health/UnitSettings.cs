@@ -7,8 +7,8 @@ namespace PoeHUD.Hud.Health
         public UnitSettings(uint color, uint outline)
         {
             Enable = true;
-            Width = new RangeNode<float>(100, 50, 150);
-            Height = new RangeNode<float>(20, 10, 75);
+            Width = new RangeNode<float>(100, 50, 250);
+            Height = new RangeNode<float>(20, 5, 75);
             Color = color;
             Outline = outline;
             Under10Percent = 0xffffffff;
@@ -23,6 +23,8 @@ namespace PoeHUD.Hud.Health
             FloatingCombatHealColor = SharpDX.Color.Lime;
             TextSize = new RangeNode<int>(15, 10, 50);
             FloatingCombatStackSize = new RangeNode<int>(1, 1, 10);
+            Z = new RangeNode<int>(0,-500,500);
+
         }
 
         public UnitSettings(uint color, uint outline, uint percentTextColor, bool showText)
@@ -49,5 +51,6 @@ namespace PoeHUD.Hud.Health
         public ColorNode FloatingCombatDamageColor { get; set; }
         public ColorNode FloatingCombatHealColor { get; set; }
         public RangeNode<int> FloatingCombatStackSize { get; set; }
+        public RangeNode<int> Z { get; set; }
     }
 }

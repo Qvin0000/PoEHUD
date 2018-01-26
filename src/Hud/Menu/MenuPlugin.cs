@@ -7,11 +7,8 @@ using PoeHUD.Hud.Settings;
 using PoeHUD.Hud.UI;
 using SharpDX;
 using System;
-using System.Collections;
 using System.Linq;
 using System.Windows.Forms;
-using System.Collections.Generic;
-using System.Numerics;
 using System.Reflection;
 using ImGuiNET;
 using PoeHUD.Hud.Dev;
@@ -49,6 +46,33 @@ namespace PoeHUD.Hud.Menu
         public bool mainSetting;
         private void RenderMenuBarImgui()
         {
+            ImGui.SetNextWindowSize(new System.Numerics.Vector2(800,600),Condition.FirstUseEver);
+            ImGui.BeginWindow("Settings");
+            {
+                ImGui.Text("Trying parse old menu.");
+                foreach (var setting in SettingsHub.SettingsBases)
+                {
+                    var split = setting.ToString().Split('.');
+                    if (ImGui.CollapsingHeader(split.Last(),TreeNodeFlags.Framed))
+                    {
+                         
+                        MenuParser(setting);
+                    }
+                }
+
+                foreach (var basePlugin in GameController.pluginsSettings)
+                {
+                  var setting =   basePlugin.Value;
+                    var split = basePlugin.Key;
+                    if (ImGui.CollapsingHeader(split,TreeNodeFlags.Framed))
+                    {
+                         
+                        MenuParser(setting);
+                    }
+                }
+                
+            }
+            ImGui.EndWindow();
             ImGui.BeginMainMenuBar();
             if (ImGui.BeginMenu("Settings"))
             {
@@ -87,12 +111,15 @@ namespace PoeHUD.Hud.Menu
             ImGui.EndMainMenuBar();
         }
 
+        private int index = 0;
         void MenuParser(object obj)
         {
             var flags = BindingFlags.Public |  BindingFlags.Instance;
             var oProp = obj.GetType().GetProperties(flags).Where(x => x.GetIndexParameters().Length == 0);
+
             foreach (var propertyInfo in oProp)
-                {
+            {
+                index++;
                     var o = Convert.ChangeType(propertyInfo.GetValue(obj, null), propertyInfo.PropertyType);
                     if (propertyInfo.PropertyType == typeof(ToggleNode))
                     {
@@ -116,6 +143,16 @@ namespace PoeHUD.Hud.Menu
                         ImGui.SliderInt($"##{propertyInfo.ReflectedType}{propertyInfo.Name}{rangeNode.GetHashCode()}", ref rangeNodeValue, rangeNode.Min, rangeNode.Max, null);
                         rangeNode.Value = rangeNodeValue;
                     }
+                    else if (propertyInfo.PropertyType==typeof(RangeNode<float>))
+                    {
+                        var rangeNode = ((RangeNode<float>)o);
+                        if (rangeNode == null) continue;
+                        var rangeNodeValue = rangeNode.Value;
+                        ImGui.Text($"{propertyInfo.Name}"); 
+                        ImGui.SameLine();
+                        ImGui.SliderFloat($"##{propertyInfo.ReflectedType}{propertyInfo.Name}{rangeNode.GetHashCode()}", ref rangeNodeValue, rangeNode.Min, rangeNode.Max, null,1f);
+                        rangeNode.Value = rangeNodeValue;
+                    }
                     else if (propertyInfo.PropertyType == typeof(ColorNode))
                     {
                         var colorNode = (ColorNode) o;
@@ -124,16 +161,26 @@ namespace PoeHUD.Hud.Menu
                         ImGui.Text($"{propertyInfo.Name}");
                         ImGui.SameLine();
                         //TODO: Fix color
-                        ImGui.Text($"###Just show ///Wrong color $$$Need fix");
-                        Vector4 color4 = new Vector4(colorNodeValue.R,colorNodeValue.G,colorNodeValue.B,colorNodeValue.A);
+                        Vector4 color4 = new Vector4(colorNodeValue.R/255f,colorNodeValue.G/255f,colorNodeValue.B/255f,colorNodeValue.A/255f);
                         ImGui.ColorEdit4($"##{propertyInfo.ReflectedType}{propertyInfo.Name}{colorNode.GetHashCode()}",ref color4, ColorEditFlags.Default);
+                        colorNode.Value = new Color(color4.X,color4.Y,color4.Z,color4.W);
+                    }
+                    else if (propertyInfo.PropertyType == typeof(UnitSettings))
+                    {
+                        var unit = (UnitSettings) o;
+                        if(unit==null) continue;
+                        if (ImGui.CollapsingHeader(propertyInfo.Name,TreeNodeFlags.Framed))
+                        {
+                         
+                            MenuParser(unit);
+
+                        }
                     }
                     else
                     {
                         ImGui.Text($"{propertyInfo.Name} : {o} " +
                                    $"/ PropertyType: {propertyInfo.PropertyType} ");
                     }
-                   
                   
                 }
         }

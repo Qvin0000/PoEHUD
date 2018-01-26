@@ -52,7 +52,7 @@ namespace PoeHUD.Poe.Components
                 if (length <= 0 || length >= MaxBuffCount * 8) // * 8 as we buff pointer takes 8 bytes.
                     return list;
                 byte[] buffPointers = M.ReadBytes(start, (int)length);
-                Buff tmp = null;
+                Buff tmp;
                 for (int i = 0; i < length; i += 8)
                 {
                     tmp = ReadObject<Buff>(BitConverter.ToInt64(buffPointers, i) + 0x08);
@@ -66,11 +66,11 @@ namespace PoeHUD.Poe.Components
         {
             long start = BuffStart;
             long end = BuffEnd;
-            long length = BuffEnd - BuffStart;
+            long length = end - start;
             if (length <= 0 || length >= MaxBuffCount * 8)
                 return false;
             byte[] buffPointers = M.ReadBytes(start, (int)length);
-            Buff tmp = null;
+            Buff tmp;
             for (int i = 0; i < length; i+=8)
             {
                 tmp = ReadObject<Buff>(BitConverter.ToInt64(buffPointers, i) + 0x08);
@@ -80,6 +80,7 @@ namespace PoeHUD.Poe.Components
             }
             return false;
         }
+        
         Dictionary<long,Buff> cacheBuffs = new Dictionary<long, Buff>();
         public List<Buff> Buffs2
         {

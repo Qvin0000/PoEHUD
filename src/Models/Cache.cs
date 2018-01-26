@@ -80,7 +80,7 @@ namespace PoeHUD.Models
                     _serverData = value;
             }
         }
-    
+
         public IngameData Data
         {
             get => _data;
@@ -160,6 +160,7 @@ namespace PoeHUD.Models
         }
         public void UpdateCache()
         {
+            _gameController.Game.RefreshTheGameState();
             _ingameState = null;
             _camera = null;
             _uiRoot = null;

@@ -13,11 +13,10 @@ using System.IO;
 using System.Linq;
 using System.Windows.Forms;
 using ImGuiNET;
-using PoeHUD.DebugPlug;
 using Color = SharpDX.Color;
 using Graphics = PoeHUD.Hud.UI.Graphics;
 using RectangleF = SharpDX.RectangleF;
-
+using ImVec4 = System.Numerics.Vector4;
 namespace PoeHUD.Hud.Health
 {
     public class HealthBarPlugin : Plugin<HealthBarSettings>
@@ -65,6 +64,7 @@ namespace PoeHUD.Hud.Health
                 .AutoRestart(GameController.CoroutineRunner).Run();
             spritePlayerV = 1f / _spriteCount;
             spriteMonsterV = 1f / _monsterSpriteCount;
+            
         }
        
         private bool leftOpen = false;
@@ -76,7 +76,10 @@ namespace PoeHUD.Hud.Health
         private float _monsterSpriteCount = 35f;
         private float spritePlayerV = 0;
         private float spriteMonsterV = 0;
+        System.Numerics.Vector2 barSize = (new System.Numerics.Vector2(100, 20));
         List<PlayerBarRenderData> _playersBarRenderData = new List<PlayerBarRenderData>();
+        private bool op = true;
+
         public override void Render()
         {
             try
@@ -94,14 +97,17 @@ namespace PoeHUD.Hud.Health
                 Func<HealthBar, bool> showHealthBar = x => x.IsShow(Settings.ShowEnemies);
                 //Not Parallel better for performance
                 //Parallel.ForEach(healthBars, x => x.Value.RemoveAll(hp => !hp.Entity.IsValid));
+               
                 foreach (HealthBar healthBar in healthBars.SelectMany(x => x.Value).Where(hp => showHealthBar(hp) && hp.Entity.IsAlive))
                 {
                     Vector3 worldCoords = healthBar.Entity.Pos;
                     Vector2 mobScreenCoords;
                     if (healthBar.Type == CreatureType.Player)
-                        mobScreenCoords = camera.WorldToScreen(worldCoords.Translate(0, 0, -170), healthBar.Entity);
+                    {
+                        mobScreenCoords = camera.WorldToScreen(worldCoords.Translate(0, 0, 0 + healthBar.Settings.Z), healthBar.Entity);
+                    }
                     else
-                        mobScreenCoords = camera.WorldToScreen(worldCoords.Translate(0, 0, Settings.ZEnemy), healthBar.Entity);
+                        mobScreenCoords = camera.WorldToScreen(worldCoords.Translate(0, 0, Settings.ZAll+healthBar.Settings.Z), healthBar.Entity);
                     if (mobScreenCoords != new Vector2())
                     {
                         float scaledWidth = healthBar.Settings.Width * windowSize.Width;
@@ -125,10 +131,10 @@ namespace PoeHUD.Hud.Health
                         {
                             color = healthBar.Settings.Under10Percent;
                         }
-                        bg.Y = DrawFlatLifeAmount(healthBar.Life, hpPercent, healthBar.Settings, bg);
-                        var yPosition = DrawFlatESAmount(healthBar, bg);
-                        yPosition = DrawDebuffPanel(new Vector2(bg.Left, yPosition), healthBar, healthBar.Life);
-                        ShowDps(healthBar, new Vector2(bg.Center.X, yPosition));
+                        //bg.Y = DrawFlatLifeAmount(healthBar.Life, hpPercent, healthBar.Settings, bg);
+                        //var yPosition = DrawFlatESAmount(healthBar, bg);
+                       // yPosition = DrawDebuffPanel(new Vector2(bg.Left, yPosition), healthBar, healthBar.Life);
+                       // ShowDps(healthBar, new Vector2(bg.Center.X, yPosition));
                         if (healthBar.Type == CreatureType.Player && Settings.NewStyle)
                         {
                             var playerBarRenderData = new PlayerBarRenderData();
@@ -163,41 +169,111 @@ namespace PoeHUD.Hud.Health
                             _playersBarRenderData.Add(playerBarRenderData);
                             continue;
                         }
-                        DrawPercents(healthBar.Settings, hpPercent, bg);
-                        Graphics.DrawImage("circlebg.png",bg,Color.Black);
+
+                        if (Settings.NewStyle)
+                        {
+                            DrawPercents(healthBar.Settings, hpPercent, bg);
+                            Graphics.DrawImage("circlebg.png", bg, Color.Black);
+                        }
+
                         var hpMonsterSpriteIndex = (float)Math.Round(34f*hpPercent)/35f;
                         
                         var folder = "newBar/";
-                        
-                        switch (healthBar.Type)
+                        if (!Settings.NewStyle)
                         {
-                            case CreatureType.Normal:
-                                color = Color.Red;
-                                Graphics.DrawImage("hpMonsterSprite.png",bg,new RectangleF(0,hpMonsterSpriteIndex,1f,spriteMonsterV),color);
-                                break;
-                            case CreatureType.Magic:
-                                color = Color.LightBlue;
-                                Graphics.DrawImage("hpMonsterSpriteMagic.png",bg,new RectangleF(0,hpMonsterSpriteIndex,1f,spriteMonsterV),color);
-                                break;
-                            case CreatureType.Rare:
-                                color = Color.Yellow;
-                                Graphics.DrawImage("hpMonsterSpriteRare.png",bg,new RectangleF(0,hpMonsterSpriteIndex,1f,spriteMonsterV),color);
-                                break;
-                           case CreatureType.Unique:
-                               color = Color.White;
-                               Graphics.DrawImage("hpMonsterSpriteUnique.png",bg,new RectangleF(0,hpMonsterSpriteIndex,1f,spriteMonsterV),color);
-                               break;
+                            barSize = new System.Numerics.Vector2(healthBar.Settings.Width,healthBar.Settings.Height);
+                            var text = "";
+                            if (healthBar.Settings.ShowHealthText)
+                            {
+                                if (healthBar.Life.MaxES > 0)
+                                {
+                                    string curES = ConvertHelper.ToShorten(healthBar.Life.CurES);
+                                    string maxES = ConvertHelper.ToShorten(healthBar.Life.MaxES);
+                                    text += $"{curES}/{maxES} {Environment.NewLine}";
+                                }
+
+                                string curHp = ConvertHelper.ToShorten(healthBar.Life.CurHP);
+                                string maxHp = ConvertHelper.ToShorten(healthBar.Life.MaxHP);
+                                 text += $"{curHp}/{maxHp}";
+                            }
+                            if (healthBar.Settings.ShowPercents)
+                            {
+                                text += $"  {(int) (100 * hpPercent)}";
+                            }
+
+                            
+                            ImGui.SetNextWindowPos(new System.Numerics.Vector2(bg.X, bg.Y), Condition.Always,
+                                new System.Numerics.Vector2(0, 0));
+                            ImGui.BeginWindow(healthBar.Entity.Id.ToString(), ref op, 0f,
+                                WindowFlags.NoTitleBar | WindowFlags.AlwaysAutoResize | WindowFlags.NoCollapse |
+                                WindowFlags.NoFocusOnAppearing | WindowFlags.NoInputs | WindowFlags.NoSavedSettings |
+                                WindowFlags.NoScrollWithMouse);
+                            ImGui.PushStyleColor(ColorTarget.Text, new ImVec4(
+                                healthBar.Settings.PercentTextColor.Value.R/255f, 
+                                healthBar.Settings.PercentTextColor.Value.G/255f, 
+                                healthBar.Settings.PercentTextColor.Value.B/255f, 
+                                healthBar.Settings.PercentTextColor.Value.A/255f));
+                            ImGui.PushStyleColor(ColorTarget.PlotHistogram, new ImVec4(
+                                color.R/255f, 
+                                color.G/255f, 
+                                color.B/255f, 
+                                color.A/255f));
+                            ImGui.PushStyleColor(ColorTarget.FrameBg, new ImVec4(
+                                healthBar.Settings.Outline.Value.R/255f, 
+                                healthBar.Settings.Outline.Value.G/255f, 
+                                healthBar.Settings.Outline.Value.B/255f, 
+                                healthBar.Settings.Outline.Value.A/255f));
+                            unsafe
+                            {
+                                fixed (System.Numerics.Vector2* bar = &barSize)
+                                {
+                                    ImGuiNative.igProgressBar(hpPercent, bar, text);
+                                }
+                            }
+                            ImGui.PopStyleColor();
+                            ImGui.PopStyleColor();
+                            ImGui.PopStyleColor();
+                            ImGui.EndWindow();
                         }
-                        if (esPercent > 0.2f)
+                        else
                         {
-                            hpMonsterSpriteIndex = (float)Math.Round(34f*esPercent)/35f;
-                            color = Color.Aqua;
-                            Graphics.DrawImage("esMonster.png",bg,new RectangleF(0,hpMonsterSpriteIndex,1f,spriteMonsterV));
+                            switch (healthBar.Type)
+                            {
+                                case CreatureType.Normal:
+                                    color = Color.Red;
+                                    Graphics.DrawImage("hpMonsterSprite.png", bg,
+                                        new RectangleF(0, hpMonsterSpriteIndex, 1f, spriteMonsterV), color);
+                                    break;
+                                case CreatureType.Magic:
+                                    color = Color.LightBlue;
+                                    Graphics.DrawImage("hpMonsterSpriteMagic.png", bg,
+                                        new RectangleF(0, hpMonsterSpriteIndex, 1f, spriteMonsterV), color);
+                                    break;
+                                case CreatureType.Rare:
+                                    color = Color.Yellow;
+                                    Graphics.DrawImage("hpMonsterSpriteRare.png", bg,
+                                        new RectangleF(0, hpMonsterSpriteIndex, 1f, spriteMonsterV), color);
+                                    break;
+                                case CreatureType.Unique:
+                                    color = Color.White;
+                                    Graphics.DrawImage("hpMonsterSpriteUnique.png", bg,
+                                        new RectangleF(0, hpMonsterSpriteIndex, 1f, spriteMonsterV), color);
+                                    break;
+                            }
+
+                            if (esPercent > 0.2f)
+                            {
+                                hpMonsterSpriteIndex = (float) Math.Round(34f * esPercent) / 35f;
+                                color = Color.Aqua;
+                                Graphics.DrawImage("esMonster.png", bg,
+                                    new RectangleF(0, hpMonsterSpriteIndex, 1f, spriteMonsterV));
+                            }
                         }
-                      /*  var hpIndex = Math.Round( hpPercent * 100/ 2.94f).ToString("0000");
-                        var esIndex = Math.Round( esPercent * 100 / 2.94f).ToString("0000");
-                        Graphics.DrawImage(folder+"circle"+hpIndex+".png",bg,color);
-                        Graphics.DrawImage("newBarEs/"+"circle"+esIndex +".png",bg,Color.Aqua);*/
+
+                        /*  var hpIndex = Math.Round( hpPercent * 100/ 2.94f).ToString("0000");
+                          var esIndex = Math.Round( esPercent * 100 / 2.94f).ToString("0000");
+                          Graphics.DrawImage(folder+"circle"+hpIndex+".png",bg,color);
+                          Graphics.DrawImage("newBarEs/"+"circle"+esIndex +".png",bg,Color.Aqua);*/
                         //DrawBackground(color, healthBar.Settings.Outline, bg, hpWidth, esWidth);
                     }
                 }
@@ -227,7 +303,7 @@ namespace PoeHUD.Hud.Health
                     }
                     _playersBarRenderData.Clear();
                 } 
-                
+              
             }
             catch
             {
@@ -235,7 +311,6 @@ namespace PoeHUD.Hud.Health
             }
         }
 
-        private float asds = 0;
         private void ShowDps(HealthBar healthBar, Vector2 point)
         {
             if (!healthBar.Settings.ShowFloatingCombatDamage)

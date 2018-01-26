@@ -42,7 +42,6 @@ namespace PoeHUD.Poe
         public long Id => (long) (_id ?? (_id = ((long)M.ReadInt(Address + 0x40) << 32 ^ Address)));
         public int InventoryId => M.ReadInt(Address + 0x58);
 
-        //For test 
         public long TestTypeId => M.ReadLong(Address, 0x30);
         public long TestTypeId2 => M.ReadLong(Address, 0x38);
         public long TestTypeId3 => M.ReadLong(Address, 0x48,0x38);
@@ -69,13 +68,13 @@ namespace PoeHUD.Poe
             return HasComponent<T>(out addr);
         }
 
-        Dictionary<string,Component> cacheComponents = new Dictionary<string, Component>();
+        readonly Dictionary<string,Component> _cacheComponents = new Dictionary<string, Component>();
         public bool HasComponent<T>(out long addr) where T : Component, new()
         {
             string name = typeof(T).Name;
-            if (cacheComponents.ContainsKey(name))
+            if (_cacheComponents.ContainsKey(name))
             {
-                addr = cacheComponents[name].Address;
+                addr = _cacheComponents[name].Address;
                 return true;
             }
             long componentLookup = ComponentLookup;
@@ -90,9 +89,7 @@ namespace PoeHUD.Poe
             }
             return true;
         }
-        
-        
-        
+
         
 
         private bool HasComponent2<T>(out long addr) where T : Component, new()
@@ -114,12 +111,19 @@ namespace PoeHUD.Poe
         public T GetComponent<T>() where T : Component, new()
         {
             string name = typeof(T).Name;
-            if (cacheComponents.ContainsKey(name))
+            if (_cacheComponents.ContainsKey(name))
             {
-                return (T) cacheComponents[name];
+                return (T) _cacheComponents[name];
             }
             long addr;
-            return HasComponent<T>(out addr) ? ReadObject<T>(ComponentList + M.ReadInt(addr + 0x18) * 8) : GetObject<T>(0);
+            if (HasComponent<T>(out addr))
+            {
+                var readObject = ReadObject<T>(ComponentList + M.ReadInt(addr + 0x18) * 8);
+                _cacheComponents[name] = readObject;
+                return readObject;
+            }
+            else
+                return GetObject<T>(0);
         }
 
         public Dictionary<string, long> GetComponents()

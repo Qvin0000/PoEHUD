@@ -76,16 +76,8 @@ namespace PoeHUD.Hud.Trackers
         public PoiTracker(GameController gameController, Graphics graphics, PoiTrackerSettings settings)
             : base(gameController, graphics, settings)
         {
-            if (!File.Exists("config/icons.json"))
-            {
-                File.WriteAllText("config/icons.json","");
-            }
-            else
-            {
-                var json = File.ReadAllText("config/icons.json");
-                ManualPoiIcons = JsonConvert.DeserializeObject<Dictionary<string,ManualPoiIcon>>(json);
-            }
-           
+            var json = File.ReadAllText("config/icons.json");
+            ManualPoiIcons = JsonConvert.DeserializeObject<Dictionary<string,ManualPoiIcon>>(json);
           
         }
 
@@ -108,6 +100,18 @@ namespace PoeHUD.Hud.Trackers
         
         private MapIcon GetMapIcon(EntityWrapper e)
         {
+            /*if (e.Path.Contains("AbyssCrack"))
+            {
+                return new CreatureMapIcon(e, "ms-green.png", () => true, 3);
+            }
+            if (e.Path.Contains("AbyssNodeMini"))
+            {
+                return new CreatureMapIcon(e, "ms-talisman.png", () => true, 5);
+            }*/
+            if (e.Path.Contains("Metadata/Chests/AbyssChest") && !e.GetComponent<Chest>().IsOpened)
+            {
+                return new ChestMapIcon(e, new HudTexture("diviner.png",Color.SpringGreen), () => true, Settings.StrongboxesIcon);
+            }
             if (e.HasComponent<NPC>() && masters.Contains(e.Path))
             {
                 return new CreatureMapIcon(e, "ms-cyan.png", () => Settings.Masters, Settings.MastersIcon);

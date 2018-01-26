@@ -23,7 +23,7 @@ namespace PoeHUD.Hud.Health
             X = new RangeNode<float>(0, -200, 200);
             Y = new RangeNode<float>(0, -200, 500);
             NewStyle = false;
-            ZEnemy = new RangeNode<int>(55,-200,200);
+            ZAll = new RangeNode<int>(55,-200,200);
         }
 
         public ToggleNode ShowInTown { get; set; }
@@ -42,6 +42,6 @@ namespace PoeHUD.Hud.Health
         public RangeNode<float> X { get; set; }
         public RangeNode<float> Y { get; set; }
         public ToggleNode NewStyle { get; set; }
-        public RangeNode<int> ZEnemy { get; set; }
+        public RangeNode<int> ZAll { get; set; }
     }
 }
