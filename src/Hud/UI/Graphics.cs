@@ -4,6 +4,7 @@ using SharpDX;
 using SharpDX.Direct3D9;
 using SharpDX.Windows;
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Numerics;
 using System.Threading;
@@ -15,6 +16,7 @@ using PoeHUD.DebugPlug;
 using PoeHUD.Framework.InputHooks;
 using PoeHUD.Framework.InputHooks.Utils;
 using PoeHUD.Hud.Menu;
+using PoeHUD.Hud.UI.Vertexes;
 using Color = SharpDX.Color;
 using Point = System.Drawing.Point;
 using RectangleF = SharpDX.RectangleF;
@@ -247,6 +249,8 @@ namespace PoeHUD.Hud.UI
                     ImGui.NewFrame();
                     Render.SafeInvoke();
                     ImGui.Render();
+                    textureRenderer.DrawImages(drawList);
+                    drawList.Clear();
                     textureRenderer.DrawImGui();
                 }
                 finally
@@ -255,7 +259,7 @@ namespace PoeHUD.Hud.UI
                     fontRenderer.End();
                     device.EndScene();
                     device.Present();
-
+                    
                 }
                 renderLocker.Set();
             }
@@ -363,6 +367,18 @@ namespace PoeHUD.Hud.UI
         {
             try
             {
+              drawList.Add(new DrawListHud(fileName,rectangle,Color.White));
+            }
+            catch (Exception e)
+            {
+                MessageBox.Show($"Failed to load texture {fileName}: {e.Message}");
+                Environment.Exit(0);
+            }
+        }
+        public void DrawPluginImageOld(string fileName, RectangleF rectangle, float repeatX = 1f)
+        {
+            try
+            {
                 textureRenderer.DrawImage(fileName, rectangle, Color.White, repeatX);
             }
             catch (Exception e)
@@ -394,7 +410,7 @@ namespace PoeHUD.Hud.UI
         {
             try
             {
-                textureRenderer.DrawImage("textures/" + fileName, rectangle, uvCoords, color);
+                drawList.Add(new DrawListHud("textures/" +fileName,rectangle,uvCoords,color));
             }
             catch (Exception e)
             {
@@ -416,7 +432,33 @@ namespace PoeHUD.Hud.UI
             }
         }
 
+        private List<DrawListHud> drawList = new List<DrawListHud>();
         public void DrawImage(string fileName, RectangleF rectangle, Color color, float repeatX = 1f)
+        {
+            try
+            {
+                drawList.Add(new DrawListHud("textures/" +fileName,rectangle,color));
+            }
+            catch (Exception e)
+            {
+                MessageBox.Show($"Failed to load texture {fileName}: {e.Message}");
+                Environment.Exit(0);
+            }
+        }
+        public void DrawImageOld(string fileName, RectangleF rectangle, RectangleF uvCoords, Color color)
+        {
+            try
+            {
+                  textureRenderer.DrawImage("textures/" + fileName, rectangle, uvCoords, color);
+               
+            }
+            catch (Exception e)
+            {
+                MessageBox.Show($"Failed to load texture {fileName}: {e.Message}");
+                Environment.Exit(0);
+            }
+        }
+        public void DrawImageOld(string fileName, RectangleF rectangle, Color color, float repeatX = 1f)
         {
             try
             {
@@ -428,7 +470,6 @@ namespace PoeHUD.Hud.UI
                 Environment.Exit(0);
             }
         }
-
         
         public unsafe static void memcpy(void* dst, void* src, int count)
         {
@@ -449,7 +490,7 @@ namespace PoeHUD.Hud.UI
         private unsafe void PrepareTextureImGui()
         {
             var io = ImGui.GetIO();
-        
+            
             var texDataAsRgba32 = io.FontAtlas.GetTexDataAsRGBA32();
             io.DisplaySize = new ImVec2(_form.ClientSize.Width, _form.ClientSize.Height);
             var t = new Texture(device, texDataAsRgba32.Width, texDataAsRgba32.Height, 1, Usage.Dynamic,
@@ -460,26 +501,61 @@ namespace PoeHUD.Hud.UI
                 memcpy((byte*) (rect.DataPointer+rect.Pitch*y),texDataAsRgba32.Pixels + (texDataAsRgba32.Width*texDataAsRgba32.BytesPerPixel)*y,(texDataAsRgba32.Width * texDataAsRgba32.BytesPerPixel));
             }
               
-            t.UnlockRectangle(0);
+            t.UnlockRectangle(0);    
             io.FontAtlas.SetTexID(t.NativePointer);
         }
 
         public void DisponseTexture(string name)
         {
-            textureRenderer.DisponseTexture(name);
+            textureRenderer.DisposeTexture(name);
+        }
+
+        public Texture GetTexture(string name)
+        {
+            return textureRenderer.GetTexture(name);
         }
         
-        public void DrawImage(ref byte[] bytes, RectangleF rectangle, Color color,string name)
+        public void DrawImage(byte[] bytes, RectangleF rectangle, Color color,string name)
         {
             try
             {
-                textureRenderer.DrawImage(ref bytes, rectangle, color,name);
+                textureRenderer.DrawImage(bytes, rectangle, color,name);
             }
             catch (Exception e)
             {
                 MessageBox.Show($"Failed to load texture from memory: {e.Message}");
                 Environment.Exit(0);
             }
+        }
+    }
+    public struct DrawListHud
+    {
+        public TexturedVertex[] Vertex;
+        public string FileName;
+        public DrawListHud(string fileName,RectangleF rect, Color color)
+        {
+            FileName = fileName;
+            TexturedVertex[] data =
+            {                   
+                new TexturedVertex(rect.Left, rect.Top, 0, 0, color),
+                new TexturedVertex(rect.Right, rect.Top, 1, 0, color),
+                new TexturedVertex(rect.Right, rect.Bottom, 1, 1, color),
+                new TexturedVertex(rect.Left, rect.Bottom, 0, 1, color)
+            };
+            Vertex = data;
+        }
+
+        public DrawListHud(string fileName,RectangleF rect,RectangleF uvCoords,Color color)
+        {
+            FileName =  fileName;
+            TexturedVertex[] data =
+            {
+                new TexturedVertex(rect.Left, rect.Top, uvCoords.Left, uvCoords.Top, color),
+                new TexturedVertex(rect.Right, rect.Top, uvCoords.Right, uvCoords.Top, color),
+                new TexturedVertex(rect.Right, rect.Bottom, uvCoords.Right, uvCoords.Bottom, color),
+                new TexturedVertex(rect.Left, rect.Bottom, uvCoords.Left, uvCoords.Bottom, color)
+            };
+            Vertex = data;
         }
     }
 }

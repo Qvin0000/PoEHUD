@@ -140,8 +140,8 @@ namespace PoeHUD.Hud.UI.Renderers
             device.SetSamplerState(0, SamplerState.AddressU, TextureAddress.Wrap);
             DrawTexturedVertices(PrimitiveType.TriangleFan, 2, data);
         }
-
-        public void DisponseTexture(string name)
+        
+        public void DisposeTexture(string name)
         {
             if(textures.TryGetValue(name,out var text))
             {
@@ -152,7 +152,7 @@ namespace PoeHUD.Hud.UI.Renderers
         
 
 
-        public void DrawImage(ref byte[] by, RectangleF rect, Color color, string name)
+        public void DrawImage(byte[] by, RectangleF rect, Color color, string name)
         {
             
             TexturedVertex[] data =
@@ -226,9 +226,9 @@ namespace PoeHUD.Hud.UI.Renderers
             }
         }
 
-        private Texture GetTexture(string fileName)
+        public Texture GetTexture(string fileName)
         {
-            if (!textures.TryGetValue(fileName, out var texture))
+            if (!textures.TryGetValue(fileName, out var  texture))
             {
                 texture = Texture.FromFile(device, fileName);
                 textures.Add(fileName, texture);
@@ -290,8 +290,8 @@ namespace PoeHUD.Hud.UI.Renderers
                     RawMatrix mat_projection = new Matrix(
                         2.0f / (R - L), 0.0f, 0.0f, 0.0f,
                         0.0f, 2.0f / (T - B), 0.0f, 0.0f,
-                        0.0f, 0.0f, 0.5f, 0.0f,
-                        (L + R) / (L - R), (T + B) / (B - T), 0.5f, 1.0f);
+                        0.0f, 0.0f, 1f, 0.0f,
+                        (L + R) / (L - R), (T + B) / (B - T), 1f, 1.0f);
                     device.SetTransform(TransformState.World, ref mat_identity);
                     device.SetTransform(TransformState.View, ref mat_identity);
                     device.SetTransform(TransformState.Projection, ref mat_projection);
@@ -331,7 +331,6 @@ namespace PoeHUD.Hud.UI.Renderers
                                 {
                                     indices[j] = idx_buffer[j];
                                 }
-                                
                                 device.DrawIndexedUserPrimitives(PrimitiveType.TriangleList,0, myCustomVertices.Length,(int) (pcmd->ElemCount / 3), indices, Format.Index16, myCustomVertices);
                             }
                             idx_buffer += pcmd->ElemCount;
@@ -341,5 +340,22 @@ namespace PoeHUD.Hud.UI.Renderers
                 st.Apply();
                 st.Dispose();
         }
+
+        public void DrawImages(List<DrawListHud> list)
+        {
+           
+            using (device.VertexDeclaration = new VertexDeclaration(device, TexturedVertex.VertexElements))
+            {
+                    for (var index = 0; index < list.Count; index++)
+                    { 
+                        var drawListH = list[index];
+                        device.SetTexture(0, GetTexture(drawListH.FileName));
+                       // device.SetSamplerState(0, SamplerState.AddressU, TextureAddress.Wrap);
+                        device.DrawUserPrimitives(PrimitiveType.TriangleFan, 2, drawListH.Vertex);
+                    }
+            }
+        }
     }
+
+   
     }
