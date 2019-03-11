@@ -13,7 +13,6 @@ using SharpDX.Direct3D9;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.InteropServices.ComTypes;
 using System.Windows.Forms;
 using Color = SharpDX.Color;
 using Graphics = PoeHUD.Hud.UI.Graphics;
@@ -54,8 +53,7 @@ namespace PoeHUD.Hud.AdvancedTooltip
                 }
                 Element uiHover = GameController.Game.IngameState.UIHover;
                 var inventoryItemIcon = uiHover.AsObject<HoverItemIcon>();
-                if (inventoryItemIcon == null)
-                    return;
+
                 Element tooltip = inventoryItemIcon.Tooltip;
                 Entity poeEntity = inventoryItemIcon.Item;
 
@@ -75,42 +73,26 @@ namespace PoeHUD.Hud.AdvancedTooltip
                 {
                     id = poeEntity.Id;
                 }
-                var baseItemType = GameController.Files.BaseItemTypes.Translate(poeEntity.Path);
+
                 if (itemEntity == null || itemEntity.Id != id)
                 {
                     List<ItemMod> itemMods = modsComponent.ItemMods;
-                    mods = itemMods.Select(item =>
-                    {
-                        
-                        return new ModValue(item, GameController.Files, modsComponent.ItemLevel,
-                            baseItemType);
-                    }).ToList();
+                    mods = itemMods.Select(item => new ModValue(item, GameController.Files, modsComponent.ItemLevel,
+                        GameController.Files.BaseItemTypes.Translate(poeEntity.Path))).ToList();
                     itemEntity = poeEntity;
                 }
 
-                if (modsComponent.ItemRarity != ItemRarity.Unique && baseItemType.ClassName!="Jewel")
+                int t1 = 0;
+                foreach (string tier in from item in mods where item.CouldHaveTiers() && item.Tier == 1 select " \u2605 ")
                 {
-
-                    var sum = mods.Where(modValue =>
-                            modValue.CouldHaveTiers() && modValue.Tier > 0 &&
-                            (modValue.AffixType == ModsDat.ModType.Prefix ||
-                             modValue.AffixType == ModsDat.ModType.Suffix))
-                        .ToList();
-                    var result = sum.Average(x => x.Tier);
-                    string str =
-                        $"{Math.Round(result, 2)} / {sum.Count()} | {mods.Count(modValue => (modValue.AffixType == ModsDat.ModType.Prefix || modValue.AffixType == ModsDat.ModType.Suffix))}";
-
-
-                    if (result > 0f && result < 3.1f)
-                    {
-                        str = $" \u2605 {str}";
-                    }
-
-                    if (Math.Abs(result) > 0)
-                        Graphics.DrawText(str, 18, tooltipRect.TopLeft.Translate(25, 56), Settings.ItemMods.T3Color);
+                    Graphics.DrawText(tier, 18, tooltipRect.TopLeft.Translate(0 + 14 * t1++, 56), Settings.ItemMods.T1Color);
                 }
-                //End
 
+                int t2 = 0;
+                foreach (string tier in from item in mods where item.CouldHaveTiers() && item.Tier == 2 select " \u2605 ")
+                {
+                    Graphics.DrawText(tier, 18, tooltipRect.TopLeft.Translate(t1 * 14 + 14 * t2++, 56), Settings.ItemMods.T2Color);
+                }
 
                 if (Settings.ItemLevel.Enable)
                 {
@@ -227,7 +209,7 @@ namespace PoeHUD.Hud.AdvancedTooltip
                         case "local_attack_speed_+%":
                             aSpd *= (100f + value) / 100;
                             break;
- 
+
                         case "local_minimum_added_physical_damage":
                             PhysLo += value;
                             break;
@@ -300,16 +282,19 @@ namespace PoeHUD.Hud.AdvancedTooltip
 
             var textPosition = new Vector2(clientRect.Right - 2, clientRect.Y + 1);
             Size2 pDpsSize = pDps > 0
-                ? Graphics.DrawText(pDps.ToString("#.#"), settings.DpsTextSize, textPosition, FontDrawFlags.Right)
+                ? Graphics.DrawText(pDps.ToString("#.#") + " pDps", settings.DpsTextSize, textPosition, FontDrawFlags.Right)
                 : new Size2();
             Size2 eDpsSize = eDps > 0
-                ? Graphics.DrawText(eDps.ToString("#.#"), settings.DpsTextSize,
+                ? Graphics.DrawText(eDps.ToString("#.#") + " eDps", settings.DpsTextSize,
                     textPosition.Translate(0, pDpsSize.Height), DpsColor, FontDrawFlags.Right)
                 : new Size2();
-            Size2 peDpsSize = pDps > 0 || eDps > 0
-                ? Graphics.DrawText((pDps + eDps).ToString("#.#") , settings.DpsTextSize, textPosition.Translate(-30, pDpsSize.Height+eDpsSize.Height), Color.YellowGreen,FontDrawFlags.Right)
-                : new Size2();
-            Vector2 dpsTextPosition = textPosition.Translate(0, pDpsSize.Height + eDpsSize.Height);
+
+            var dps = pDps + eDps;
+            Size2 dpsSize = dps > 0
+              ? Graphics.DrawText(dps.ToString("#.#") + " Dps", settings.DpsTextSize,
+                  textPosition.Translate(0, pDpsSize.Height + eDpsSize.Height), Color.White, FontDrawFlags.Right)
+              : new Size2();
+            Vector2 dpsTextPosition = textPosition.Translate(0, pDpsSize.Height + eDpsSize.Height + dpsSize.Height);
             Graphics.DrawText("dps", settings.DpsNameTextSize, dpsTextPosition, settings.TextColor, FontDrawFlags.Right);
             Graphics.DrawImage("preload-end.png", new RectangleF(textPosition.X - 86, textPosition.Y - 6, 90, 65), settings.BackgroundColor);
         }

@@ -1,66 +1,30 @@
 using System;
 using PoeHUD.Models.Interfaces;
 using System.Collections.Generic;
+using PoeHUD.Controllers;
+using PoeHUD.Poe.Components;
 
 namespace PoeHUD.Poe
 {
     public sealed class Entity : RemoteMemoryObject, IEntity
     {
-        private long _componentLookup = -1;
-        private long _componentList =-1;
-        private long ComponentLookup =>  _componentLookup==-1 ?_componentLookup= M.ReadLong(Address, 0x48, 0x30) : _componentLookup;
-        private long ComponentList => _componentList==-1 ? _componentList = M.ReadLong(Address + 0x8) : _componentList;
-        private string _path;
-        private int readingPathAttempts = 0;
-        public string Path
-        {
-            get
-            {
-                if(string.IsNullOrEmpty(_path) && readingPathAttempts<5)
-                {
-                    _path = M.ReadStringU(M.ReadLong(Address, 0x20),(int) M.ReadLong(Address,0x30)*2);
-                    readingPathAttempts++;
-                }
-                return _path;
-            }
-        }
+        private long ComponentLookup => M.ReadLong(Address, 0x48, 0x30);
+        private long ComponentList => M.ReadLong(Address + 0x8);
+        public string Path => M.ReadStringU(M.ReadLong(Address, 0x20));
 
-       
-   
-
-        private bool _isValid; 
-        public bool IsValid 
-        {
-            get
-            {
-                Experimental();
-                return _isValid;
-            }
-        }
-
-        private long? _id;
-        public long Id => (long) (_id ?? (_id = ((long)M.ReadInt(Address + 0x40) << 32 ^ Address)));
-        public int InventoryId => M.ReadInt(Address + 0x58);
-
-        public long TestTypeId => M.ReadLong(Address, 0x30);
-        public long TestTypeId2 => M.ReadLong(Address, 0x38);
-        public long TestTypeId3 => M.ReadLong(Address, 0x48,0x38);
-        public long TestTypeId4 => M.ReadInt(Address, 0x54);
-      
-        private float _nextUpdateTime;
-        void Experimental()
-        {
-            if (Game.MainTimer.ElapsedMilliseconds > _nextUpdateTime)
-            {
-                _nextUpdateTime = Game.Performance.GetWaitTime(Game.Performance.meanLatency,33);
-                _isValid = M.ReadInt(Address, 0x20, 0) == 0x65004D;
-            }
-        }
         /// <summary>
         /// 0x65004D = "Me"(4 bytes) from word Metadata
         /// </summary>
-        private bool? _isHostile;
-        public bool IsHostile => (bool) (_isHostile ?? (_isHostile = ((M.ReadByte(M.ReadLong(Address + 0x50) + 0x130) & 1) == 0)));
+        public bool IsValid => M.ReadInt(Address, 0x20, 0) == 0x65004D;
+
+        public long Id => (long)M.ReadInt(Address + 0x40);// << 32 ^ Address;
+        public int InventoryId => M.ReadInt(Address + 0x58);
+
+        /// if you want to find parent(child) of Entity (for essence mobs) - it will be at 0x48 in a deph of 2-3 in first pointers
+
+        public Positioned PositionedComp => ReadObject<Positioned>(Address + 0x50);
+
+        public bool IsHostile => (PositionedComp.Reaction & 0x7f) != 1;
 
         public bool HasComponent<T>() where T : Component, new()
         {
@@ -68,31 +32,7 @@ namespace PoeHUD.Poe
             return HasComponent<T>(out addr);
         }
 
-        readonly Dictionary<string,Component> _cacheComponents = new Dictionary<string, Component>();
-        public bool HasComponent<T>(out long addr) where T : Component, new()
-        {
-            string name = typeof(T).Name;
-            if (_cacheComponents.ContainsKey(name))
-            {
-                addr = _cacheComponents[name].Address;
-                return true;
-            }
-            long componentLookup = ComponentLookup;
-            addr = M.ReadLong(componentLookup);
-            int i = 0;
-            while (!M.ReadString(M.ReadLong(addr + 0x10)).Equals(name))
-            {
-                addr = M.ReadLong(addr);
-                ++i;
-                if (addr == componentLookup || addr == 0 || addr == -1 || i >= 200)
-                    return false;
-            }
-            return true;
-        }
-
-        
-
-        private bool HasComponent2<T>(out long addr) where T : Component, new()
+        private bool HasComponent<T>(out long addr) where T : Component, new()
         {
             string name = typeof(T).Name;
             long componentLookup = ComponentLookup;
@@ -110,20 +50,8 @@ namespace PoeHUD.Poe
 
         public T GetComponent<T>() where T : Component, new()
         {
-            string name = typeof(T).Name;
-            if (_cacheComponents.ContainsKey(name))
-            {
-                return (T) _cacheComponents[name];
-            }
             long addr;
-            if (HasComponent<T>(out addr))
-            {
-                var readObject = ReadObject<T>(ComponentList + M.ReadInt(addr + 0x18) * 8);
-                _cacheComponents[name] = readObject;
-                return readObject;
-            }
-            else
-                return GetObject<T>(0);
+            return HasComponent<T>(out addr) ? ReadObject<T>(ComponentList + M.ReadInt(addr + 0x18) * 8) : ReadObject<T>(0);
         }
 
         public Dictionary<string, long> GetComponents()

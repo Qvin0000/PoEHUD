@@ -33,8 +33,8 @@ namespace PoeHUD.Hud.Loot
             BorderSettings = new BorderSettings();
             WithBorder = true;
             WithSound = false;
-            Alternative = true;
-            FilePath = "config/neversink's.filter";
+            ShouldUseFilterFile = true;
+            FilePath = "config/NeverSink-SEMI-STRICT.filter";
         }
 
         public ToggleNode ShowItemOnMap { get; set; }
@@ -62,13 +62,14 @@ namespace PoeHUD.Hud.Loot
         public RangeNode<int> LootIcon { get; set; }
         public ToggleNode LootIconBorderColor { get; set; }
 
+        [PoeHUD.Plugins.IgnoreMenu]
         [JsonProperty("Show quality items")]
         public QualityItemsSettings QualityItems { get; set; }
-
+        [PoeHUD.Plugins.IgnoreMenu]
         public BorderSettings BorderSettings { get; set; }
         public ToggleNode WithBorder { get; set; }
         public ToggleNode WithSound { get; set; }
-        public ToggleNode Alternative { get; set; }
+        public ToggleNode ShouldUseFilterFile { get; set; }
         public FileNode FilePath { get; set; }
     }
 }

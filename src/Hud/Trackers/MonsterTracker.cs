@@ -9,7 +9,9 @@ using SharpDX;
 using SharpDX.Direct3D9;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using PoeHUD.Hud.Preload;
 
 namespace PoeHUD.Hud.Trackers
 {
@@ -19,15 +21,36 @@ namespace PoeHUD.Hud.Trackers
         private readonly Dictionary<EntityWrapper, MonsterConfigLine> alertTexts;
         private readonly Dictionary<MonsterRarity, Func<EntityWrapper, Func<string, string>, CreatureMapIcon>> iconCreators;
         private readonly Dictionary<string, MonsterConfigLine> modAlerts, typeAlerts;
-        private bool IsLab;
+        private const string MOD_ALERTS = "config/monster_mod_alerts.txt";
+        private const string MOD_ALERTS_PERSONAL = "config/monster_mod_alerts_personal.txt";
+        private const string TYPE_ALERTS = "config/monster_name_alerts.txt";
+        private const string TYPE_ALERTS_PERSONAL = "config/monster_name_alerts_personal.txt";
 
         public MonsterTracker(GameController gameController, Graphics graphics, MonsterTrackerSettings settings)
             : base(gameController, graphics, settings)
         {
             alreadyAlertedOf = new HashSet<long>();
             alertTexts = new Dictionary<EntityWrapper, MonsterConfigLine>();
-            modAlerts = LoadConfig("config/monster_mod_alerts.txt");
-            typeAlerts = LoadConfig("config/monster_name_alerts.txt");
+            modAlerts = LoadConfig(MOD_ALERTS);
+            typeAlerts = LoadConfig(TYPE_ALERTS);
+
+            if (File.Exists(MOD_ALERTS_PERSONAL))
+            {
+                modAlerts = modAlerts.MergeLeft(LoadConfig(MOD_ALERTS_PERSONAL));
+            }
+            else
+            {
+                File.WriteAllText(MOD_ALERTS_PERSONAL , string.Empty);
+            }
+
+            if (File.Exists(TYPE_ALERTS_PERSONAL))
+            {
+                typeAlerts = typeAlerts.MergeLeft(LoadConfig(TYPE_ALERTS_PERSONAL));
+            }
+            else
+            {
+                File.WriteAllText(TYPE_ALERTS_PERSONAL, string.Empty);
+            }
             Func<bool> monsterSettings = () => Settings.Monsters;
             iconCreators = new Dictionary<MonsterRarity, Func<EntityWrapper, Func<string, string>, CreatureMapIcon>>
             {
@@ -40,7 +63,6 @@ namespace PoeHUD.Hud.Trackers
             {
                 alreadyAlertedOf.Clear();
                 alertTexts.Clear();
-                IsLab = area.CurrentArea.DisplayName.Contains("Aspirant's");
             };
         }
 
@@ -76,12 +98,12 @@ namespace PoeHUD.Hud.Trackers
                 var rectBackground = new RectangleF();
 
                 var groupedAlerts = alertTexts.Where(y => y.Key.IsAlive && y.Key.IsHostile).Select(y =>
-                    {
-                        Vector2 delta = y.Key.GetComponent<Positioned>().GridPos - playerPos;
-                        double phi;
-                        double distance = delta.GetPolarCoordinates(out phi);
-                        return new { Dic = y, Phi = phi, Distance = distance };
-                    })
+                {
+                    Vector2 delta = y.Key.GetComponent<Positioned>().GridPos - playerPos;
+                    double phi;
+                    double distance = delta.GetPolarCoordinates(out phi);
+                    return new { Dic = y, Phi = phi, Distance = distance };
+                })
                     .OrderBy(y => y.Distance)
                     .GroupBy(y => y.Dic.Value)
                     .Select(y => new { y.Key.Text, y.Key.Color, Monster = y.First(), Count = y.Count() }).ToList();
@@ -180,6 +202,7 @@ namespace PoeHUD.Hud.Trackers
 
         private static List<string> IgnoreEntitiesList = new List<string>()
         {
+            "GoddessOfJustice",
             "MonsterFireTrap2",
             "MonsterBlastRainTrap",
             "Metadata/Monsters/Frog/FrogGod/SilverOrb",
@@ -193,8 +216,6 @@ namespace PoeHUD.Hud.Trackers
             {
                 if (entity.Path.Contains(_entity))
                     return null;
-                if (IsLab && entity.Path.Contains("GoddessOfJustice"))
-                    return null;
             }
 
             if (!entity.IsHostile)
@@ -207,7 +228,7 @@ namespace PoeHUD.Hud.Trackers
 
             string overrideIcon = null;
             var life = entity.GetComponent<Life>();
-            if (life.HasBuff2("hidden_monster"))
+            if (life.HasBuff("hidden_monster"))
             {
                 overrideIcon = HiddenIcons[(int)monsterRarity];
             }

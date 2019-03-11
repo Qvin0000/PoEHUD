@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using SharpDX;
 
 namespace PoeHUD.Poe.RemoteMemoryObjects
 {
@@ -6,17 +7,17 @@ namespace PoeHUD.Poe.RemoteMemoryObjects
     {
         public IEnumerable<Entity> Entities => EntitiesAsDictionary.Values;
 
-        public Dictionary<int, Entity> EntitiesAsDictionary
+        public Dictionary<uint, Entity> EntitiesAsDictionary
         {
             get
             {
-                var dictionary = new Dictionary<int, Entity>();
+                var dictionary = new Dictionary<uint, Entity>();
                 CollectEntities(M.ReadLong(Address), dictionary);
                 return dictionary;
             }
         }
 
-        private void CollectEntities(long addr, Dictionary<int, Entity> list)
+        private void CollectEntities(long addr, Dictionary<uint, Entity> list)
         {
             long num = addr;
             addr = M.ReadLong(addr + 0x8);
@@ -24,9 +25,8 @@ namespace PoeHUD.Poe.RemoteMemoryObjects
             var queue = new Queue<long>();
             queue.Enqueue(addr);
             int loopcount = 0;
-            while (queue.Count > 0 && loopcount < 10000)
+            while (queue.Count > 0)
             {
-                loopcount++;
                 long nextAddr = queue.Dequeue();
                 if (hashSet.Contains(nextAddr))
                     continue;
@@ -34,18 +34,20 @@ namespace PoeHUD.Poe.RemoteMemoryObjects
                 hashSet.Add(nextAddr);
                 if (nextAddr != num && nextAddr != 0)
                 {
-                    int EntityID = M.ReadInt(nextAddr + 0x28, 0x40);
+                    var EntityID = M.ReadUInt(M.ReadLong(nextAddr + 0x28) + 0x40);
                     if (!list.ContainsKey(EntityID))
                     {
                         long address = M.ReadLong(nextAddr + 0x28);
                         var entity = GetObject<Entity>(address);
-                        if(!entity.IsValid) continue;
-                        //call for cache
-                        if(entity.Path == string.Empty) continue;
                         list.Add(EntityID, entity);
                     }
                     queue.Enqueue(M.ReadLong(nextAddr));
                     queue.Enqueue(M.ReadLong(nextAddr + 0x10));
+                }
+
+                if (loopcount++ < 10000)
+                {
+                    DebugPlug.DebugPlugin.LogMsg("Entities processing limit reached (10k)", 0.1f, Color.Yellow);
                 }
             }
         }

@@ -11,9 +11,7 @@ using PoeHUD.Hud.Settings.Converters;
 using PoeHUD.Hud.Trackers;
 using PoeHUD.Hud.XpRate;
 using System;
-using System.Collections.Generic;
 using System.IO;
-using PoeHUD.Hud.Dev;
 using PoeHUD.Hud.Performance;
 
 namespace PoeHUD.Hud.Settings
@@ -23,7 +21,7 @@ namespace PoeHUD.Hud.Settings
         private const string SETTINGS_FILE_NAME = "config/settings.json";
 
         public static readonly JsonSerializerSettings jsonSettings;
-        public static readonly List<SettingsBase> SettingsBases = new List<SettingsBase>();
+
         static SettingsHub()
         {
             jsonSettings = new JsonSerializerSettings
@@ -40,7 +38,7 @@ namespace PoeHUD.Hud.Settings
 
         public SettingsHub()
         {
-            MenuSettings = new MenuSettings();
+            MenuSettings = new CoreSettings();
             DpsMeterSettings = new DpsMeterSettings();
             MapIconsSettings = new MapIconsSettings();
             ItemAlertSettings = new ItemAlertSettings();
@@ -52,25 +50,10 @@ namespace PoeHUD.Hud.Settings
             HealthBarSettings = new HealthBarSettings();
             KillCounterSettings = new KillCounterSettings();
             PerformanceSettings = new PerformanceSettings();
-            DebugTreeSettings = new DebugTreeSettings();
-            DebugInformationSettings = new DebugInformationSettings();
-            DebugPluginLogSettings = new DebugPluginLogSettings();
-            SettingsBases.Add(AdvancedTooltipSettings);
-            SettingsBases.Add(DpsMeterSettings);
-            SettingsBases.Add(HealthBarSettings);
-            SettingsBases.Add(ItemAlertSettings);
-            SettingsBases.Add(KillCounterSettings);
-            SettingsBases.Add(MapIconsSettings);
-            SettingsBases.Add(MenuSettings);
-            SettingsBases.Add(MonsterTrackerSettings);
-            SettingsBases.Add(PerformanceSettings);
-            SettingsBases.Add(PoiTrackerSettings);
-            SettingsBases.Add(PreloadAlertSettings);
-            SettingsBases.Add(XpRateSettings);
         }
 
         [JsonProperty("Menu")]
-        public MenuSettings MenuSettings { get; private set; }
+        public CoreSettings MenuSettings { get; private set; }
 
         [JsonProperty("DPS meter")]
         public DpsMeterSettings DpsMeterSettings { get; private set; }
@@ -103,42 +86,36 @@ namespace PoeHUD.Hud.Settings
         public KillCounterSettings KillCounterSettings { get; private set; }
         [JsonProperty("Performance")]
         public PerformanceSettings PerformanceSettings { get; private set; }
-        [JsonIgnore]
-        public DebugTreeSettings DebugTreeSettings { get; private set; }
-        [JsonIgnore]
-        public DebugInformationSettings DebugInformationSettings { get; private set; }
-        [JsonIgnore]
-        public DebugPluginLogSettings DebugPluginLogSettings { get; private set; }
 
-        private static SettingsHub loadedSettings;
         public static SettingsHub Load()
         {
-            if (loadedSettings == null)
+            try
             {
-                try
-                {
-                    string json = File.ReadAllText(SETTINGS_FILE_NAME);
-                    return JsonConvert.DeserializeObject<SettingsHub>(json, jsonSettings);
-                }
-                catch
-                {
-                    if (File.Exists(SETTINGS_FILE_NAME))
-                    {
-                        string backupFileName = SETTINGS_FILE_NAME + DateTime.Now.Ticks;
-                        File.Move(SETTINGS_FILE_NAME, backupFileName);
-                    }
+                string json = File.ReadAllText(SETTINGS_FILE_NAME);
 
-                    var settings = new SettingsHub();
-                    Save(settings);
-                    loadedSettings = settings;
-                    return settings;
-                }
+                if (string.IsNullOrEmpty(json.Trim()))//Sometimes settings is empty
+                    throw new Exception();
+                if (json == "null")//Sometime it contains only null word
+                    throw new Exception();
+                return JsonConvert.DeserializeObject<SettingsHub>(json, jsonSettings);
             }
-            return loadedSettings;
+            catch
+            {
+                if (File.Exists(SETTINGS_FILE_NAME))
+                {
+                    string backupFileName = SETTINGS_FILE_NAME + DateTime.Now.Ticks;
+                    File.Move(SETTINGS_FILE_NAME, backupFileName);
+                }
+
+                var settings = new SettingsHub();
+                Save(settings);
+                return settings;
+            }
         }
 
         public static void Save(SettingsHub settings)
         {
+            if (settings == null) return;
             using (var stream = new StreamWriter(File.Create(SETTINGS_FILE_NAME)))
             {
                 string json = JsonConvert.SerializeObject(settings, Formatting.Indented, jsonSettings);

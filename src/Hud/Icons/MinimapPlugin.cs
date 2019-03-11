@@ -35,6 +35,7 @@ namespace PoeHUD.Hud.Icons
                 {
                     return;
                 }
+
                 if (GameController.Game.IngameState.IngameUi.AtlasPanel.IsVisible)
                     return;
                 if (GameController.Game.IngameState.IngameUi.TreePanel.IsVisible)
@@ -51,7 +52,7 @@ namespace PoeHUD.Hud.Icons
                 {
                     float iconZ = icon.EntityWrapper.GetComponent<Render>().Z;
                     Vector2 point = mapCenter
-                                    + MapIcon.DeltaInWorldToMinimapDelta(icon.WorldPosition - playerPos, diag, SCALE, (iconZ - posZ) / 20);
+                        + MapIcon.DeltaInWorldToMinimapDelta(icon.WorldPosition - playerPos, diag, SCALE, (iconZ - posZ) / 20);
 
                     HudTexture texture = icon.TextureIcon;
                     float size = icon.Size;

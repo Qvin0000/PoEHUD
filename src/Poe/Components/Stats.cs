@@ -1,72 +1,62 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using PoeHUD.Controllers;
-using PoeHUD.DebugPlug;
 using PoeHUD.Models.Enums;
 
 namespace PoeHUD.Poe.Components
 {
     public class Stats : Component
     {
-        
-            public long statPtrStart => M.ReadLong(Address + 0x50);
-            public long statPtrEnd => M.ReadLong(Address + 0x58);
-        public Dictionary<PlayerStats, int> AllStats
+        //Stats goes as sequence of 2 values, 4 byte each. First goes stat ID then goes stat value
+        public Dictionary<int, int> StatDictionary
         {
             get
             {
-                UpdateAllDates();
+                var statPtrStart = M.ReadLong(Address + 0x50);
+                var statPtrEnd = M.ReadLong(Address + 0x58);
+
+	            if (Math.Abs(statPtrEnd - statPtrStart) / 8 > 3000)
+	            {
+		            return new Dictionary<int, int>();
+	            }
+
+                int key = 0;
+                int value = 0;
+                int total_stats = (int)(statPtrEnd - statPtrStart);
+                var bytes = M.ReadBytes(statPtrStart, total_stats);
+                var result = new Dictionary<int, int>(total_stats / 8);
+                for (int i = 0; i < bytes.Length; i += 8)
+                {
+                    key = BitConverter.ToInt32(bytes, i);
+                    value = BitConverter.ToInt32(bytes, i + 0x04);
+                    result[key] = value;
+                }
                 return result;
             }
         }
-        private float nextUpdate;
-        Dictionary<PlayerStats, int> result = new Dictionary<PlayerStats, int>();
 
-
-   /*     public bool getStat(PlayerStats key, out int value)
+        public Dictionary<GameStat, int> GameStatDictionary
         {
-            long ptrStart = M.ReadLong(Address + 0x50);
-            long ptrEnd = M.ReadLong(Address + 0x58);
-
-            for (long i = ptrStart; i < ptrEnd; i += 8)
+            get
             {
-                if (M.ReadInt(i) == (int) key)
+                var statPtrStart = M.ReadLong(Address + 0x50);
+                var statPtrEnd = M.ReadLong(Address + 0x58);
+
+	            if (Math.Abs(statPtrEnd - statPtrStart) / 8 > 3000)
+	            {
+		            return new Dictionary<GameStat, int>();
+	            }
+
+                var total_stats = (int)(statPtrEnd - statPtrStart);
+                var bytes = M.ReadBytes(statPtrStart, total_stats);
+                var result = new Dictionary<GameStat, int>(total_stats / 8);
+                for (var i = 0; i < bytes.Length; i += 8)
                 {
-                    value = M.ReadInt(i + 0x04);
-                    return true;
+                    var key = BitConverter.ToInt32(bytes, i);
+                    var value = BitConverter.ToInt32(bytes, i + 0x04);
+                    result.Add((GameStat)key, value);
                 }
+                return result;
             }
-            value = 0;
-            return false;
-        }*/
-
-        void UpdateAllDates()
-        {
-            if (Game.MainTimer.ElapsedMilliseconds > nextUpdate)
-            {
-                nextUpdate = Game.Performance.GetWaitTime(Game.Performance.meanLatency*3);
-                long ptrStart = M.ReadLong(Address + 0x50);
-                long ptrEnd = M.ReadLong(Address + 0x58);
-                var bytes = M.ReadBytes(ptrStart, (int) (ptrEnd - ptrStart));
-                var dict = new Dictionary<PlayerStats, int>();
-                for (int i = 0; i < bytes.Length; i += 8)
-                    dict[(PlayerStats) BitConverter.ToInt32(bytes, i)] = BitConverter.ToInt32(bytes, i + 0x04);
-                result = dict;
-            }
-        }
-
-
-        public bool getStat(PlayerStats key, out int value)
-        {
-            UpdateAllDates();
-            if (result.TryGetValue(key, out var res))
-            {
-                value = res;
-                return true;
-            }
-            value = 0;
-            return false;
         }
     }
 }

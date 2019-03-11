@@ -1,12 +1,9 @@
-﻿using System;
-using SharpDX;
+﻿using SharpDX;
 
 namespace PoeHUD.Hud.Settings
 {
     public sealed class ColorNode
     {
-        private Color _value;
-
         public ColorNode()
         {
         }
@@ -21,28 +18,8 @@ namespace PoeHUD.Hud.Settings
             Value = color;
         }
 
-        public Color Value
-        {
-            get => _value;
-            set
-            {
-                if (!value.Equals(_value))
-                {
-                    _value = value;
-                    try
-                    {
-                        OnValueChanged?.Invoke();
-                    }
-                    catch (Exception)
-                    {
+        public Color Value { get; set; }
 
-                        DebugPlug.DebugPlugin.LogMsg($"Error in function that subscribed for: {nameof(ColorNode)}.OnValueChanged", 10, SharpDX.Color.Red);
-                    }
-                }
-            }
-        }
-
-        public event Action OnValueChanged;
         public static implicit operator Color(ColorNode node)
         {
             return node.Value;

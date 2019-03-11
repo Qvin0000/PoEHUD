@@ -1,33 +1,26 @@
-using System.Diagnostics;
+using PoeHUD.Controllers;
 using PoeHUD.Framework;
-using PoeHUD.Hud.Performance;
-
 namespace PoeHUD.Poe.RemoteMemoryObjects
 {
     public class TheGame : RemoteMemoryObject
     {
-        public readonly Stopwatch MainTimer;
-        public readonly Performance Performance;
-        public TheGame(Memory m,Performance performance)
+        public TheGame(Memory m)
         {
             M = m;
             Address = m.ReadLong(Offsets.Base + m.AddressOfProcess, 0x8, 0xf8);//0xC40
             Game = this;
-            MainTimer = Stopwatch.StartNew();
-            Performance = performance;
         }
-        public IngameState IngameState => Game.Performance.Cache.Enable && Game.Performance.Cache.IngameState != null
-            ? Game.Performance.Cache.IngameState
-            : (Game.Performance.Cache.Enable
-                ? Game.Performance.Cache.IngameState =
-                    IngameStateReal 
+        public IngameState IngameState => GameController.Instance.Cache.Enable && GameController.Instance.Cache.IngameState != null
+            ? GameController.Instance.Cache.IngameState
+            : (GameController.Instance.Cache.Enable
+                ? GameController.Instance.Cache.IngameState =
+                    IngameStateReal
                 : IngameStateReal);
 
-        private IngameState IngameStateReal => ReadObject<IngameState>(Address + 0x38);
+        private IngameState IngameStateReal => true ? GameStateController.IngameState : ReadObject<IngameState>(Address + 0x38);
 
         public int AreaChangeCount => M.ReadInt(M.AddressOfProcess + Offsets.AreaChangeCount);
-        public bool IsGameLoading => M.ReadInt(M.AddressOfProcess + Offsets.isLoadingScreenOffset) == 1;
-
+        public bool IsGameLoading => GameStateController.IsLoading;
         public void RefreshTheGameState()
         {
             Address = M.ReadLong(Offsets.Base + M.AddressOfProcess, 0x8, 0xF8);

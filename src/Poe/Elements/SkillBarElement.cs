@@ -3,6 +3,12 @@
     public class SkillBarElement : Element
     {
         public long TotalSkills => ChildCount;
-        public SkillElement this[int k] => Children[k].AsObject<SkillElement>();
+        public SkillElement this[int k]
+        {
+            get
+            {
+                return Children[k].AsObject<SkillElement>();
+            }
+        }
     }
 }

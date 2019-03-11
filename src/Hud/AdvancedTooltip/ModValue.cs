@@ -5,17 +5,17 @@ using PoeHUD.Poe.RemoteMemoryObjects;
 using SharpDX;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace PoeHUD.Hud.AdvancedTooltip
 {
     public class ModValue
     {
         private readonly int totalTiers = 1;
-        static char[] numbers = new char[] {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
+
         public ModValue(ItemMod mod, FsController fs, int iLvl, Models.BaseItemType baseItem)
         {
-        
-             string baseClassName = baseItem.ClassName.ToLower().Replace(' ', '_');
+            string baseClassName = baseItem.ClassName.ToLower().Replace(' ', '_');
             Record = fs.Mods.records[mod.RawName];
             AffixType = Record.AffixType;
             AffixText = String.IsNullOrEmpty(Record.UserFriendlyName) ? Record.Key : Record.UserFriendlyName;
@@ -30,17 +30,13 @@ namespace PoeHUD.Hud.AdvancedTooltip
             {
                 bool tierFound = false;
                 totalTiers = 0;
-       
-               // var keyRcd = Record.Key.Where(c => char.IsLetter(c)).ToArray<char>();
-                var rec1 = Record.Key.TrimEnd(numbers);
+                var keyRcd = Record.Key.Where(c => char.IsLetter(c)).ToArray<char>();
                 foreach (var tmp in allTiers)
                 {
-                   // var keyrcd = tmp.Key.Where(k => char.IsLetter(k)).ToArray<char>();
-                    var rec2 = tmp.Key.TrimEnd(numbers);
-                  /*  if (!keyrcd.SequenceEqual(keyRcd))
-                        continue;*/
-                    if(rec1!=rec2)
+                    var keyrcd = tmp.Key.Where(k => char.IsLetter(k)).ToArray<char>();
+                    if (!keyrcd.SequenceEqual(keyRcd))
                         continue;
+
                     int baseChance;
                     if (!tmp.TagChances.TryGetValue(baseClassName, out baseChance))
                         baseChance = -1;

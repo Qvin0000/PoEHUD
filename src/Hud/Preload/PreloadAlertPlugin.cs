@@ -11,21 +11,27 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Windows.Forms;
 
 namespace PoeHUD.Hud.Preload
 {
     public class PreloadAlertPlugin : SizedPlugin<PreloadAlertSettings>
     {
-        private readonly HashSet<PreloadConfigLine> alerts;
+        public static event Action<List<string>> OnPreloadReceived = delegate { };
+        public static HashSet<PreloadConfigLine> alerts;
         private readonly Dictionary<string, PreloadConfigLine> alertStrings;
+        private readonly Dictionary<string, PreloadConfigLine> personalAlertStrings;
         private bool foundSpecificPerandusChest = false;
         private bool essencefound = false;
         private bool holdKey = false;
+        private bool autoHide = false;
         private bool isAreaChanged = false;
         public static Color AreaNameColor = new Color();
         private readonly SettingsHub settingsHub;
-        private bool autoHide = false;
+        private const string PRELOAD_ALERTS = "config/preload_alerts.txt";
+        private const string PRELOAD_ALERTS_PERSONAL = "config/preload_alerts_personal.txt";
+
         //Can be used by external plugins:
         public static event Action<HashSet<PreloadConfigLine>> ePreloadResult = delegate { };
         public static Dictionary<string, PreloadConfigLine> Essences;
@@ -39,7 +45,17 @@ namespace PoeHUD.Hud.Preload
         {
             this.settingsHub = settingsHub;
             alerts = new HashSet<PreloadConfigLine>();
-            alertStrings = LoadConfig("config/preload_alerts.txt");
+            alertStrings = LoadConfig(PRELOAD_ALERTS);
+
+            if (File.Exists(PRELOAD_ALERTS_PERSONAL))
+            {
+                alertStrings = alertStrings.MergeLeft(LoadConfig(PRELOAD_ALERTS_PERSONAL));
+            }
+            else
+            {
+                File.WriteAllText(PRELOAD_ALERTS_PERSONAL, string.Empty);
+            }
+
             GameController.Area.OnAreaChange += OnAreaChange;
             AreaNameColor = Settings.AreaTextColor;
             SetupPredefinedConfigs();
@@ -68,18 +84,18 @@ namespace PoeHUD.Hud.Preload
                 { "Metadata/Monsters/Daemon/EssenceDaemonFirePulse", new PreloadConfigLine { Text = "Essence of Anger", FastColor = () => Settings.EssenceOfAnger}},
                 { "Metadata/Monsters/Daemon/EssenceDaemonColdPulse", new PreloadConfigLine { Text = "Essence of Hatred", FastColor = () => Settings.EssenceOfHatred}},
                 { "Metadata/Monsters/Daemon/EssenceDaemonLightningPulse", new PreloadConfigLine { Text = "Essence of Wrath", FastColor = () => Settings.EssenceOfWrath}},
-                { "Metadata/Monsters/Daemon/EssenceDaemonChaosDegenPulse", new PreloadConfigLine { Text = "Essence of Misery", FastColor = () => Settings.EssenceOfMisery}},
+                { "Metadata/Monsters/Daemon/EssenceDaemonChaosDegenPulse", new PreloadConfigLine { Text = "Essence of Misery (Suggest: Corruption)", FastColor = () => Settings.EssenceOfMisery}},        //Suggest Corruption
                 { "Metadata/Monsters/Daemon/EssenceDaemonSummonOrbOfStormsDaemon", new PreloadConfigLine { Text = "Essence of Torment", FastColor = () => Settings.EssenceOfTorment}},
                 { "Metadata/Monsters/Daemon/EssenceDaemonSummonGhost", new PreloadConfigLine { Text = "Essence of Fear", FastColor = () => Settings.EssenceOfFear}},
                 { "Metadata/Monsters/Daemon/EssenceDaemonFrostBomb", new PreloadConfigLine { Text = "Essence of Suffering", FastColor = () => Settings.EssenceOfSuffering}},
-                { "Metadata/Monsters/Daemon/EssenceDaemonGrab", new PreloadConfigLine { Text = "Essence of Envy", FastColor = () => Settings.EssenceOfEnvy}},
+                { "Metadata/Monsters/Daemon/EssenceDaemonGrab", new PreloadConfigLine { Text = "Essence of Envy (Suggest: Corruption)", FastColor = () => Settings.EssenceOfEnvy}},                      //Suggest Corruption
                 { "Metadata/Monsters/Daemon/EssenceDaemonBuffToParentCasterDodge", new PreloadConfigLine { Text = "Essence of Zeal", FastColor = () => Settings.EssenceOfZeal}},
                 { "Metadata/Monsters/Daemon/EssenceDaemonBuffToParentCasterDamageTaken", new PreloadConfigLine { Text = "Essence of Loathing", FastColor = () => Settings.EssenceOfLoathing}},
-                { "Metadata/Monsters/Daemon/EssenceDaemonBuffToParentCasterCrit", new PreloadConfigLine { Text = "Essence of Scorn", FastColor = () => Settings.EssenceOfScorn}},
+                { "Metadata/Monsters/Daemon/EssenceDaemonBuffToParentCasterCrit", new PreloadConfigLine { Text = "Essence of Scorn (Suggest: Corruption)", FastColor = () => Settings.EssenceOfScorn}}, //Suggest Corruption
                 { "Metadata/Monsters/Daemon/EssenceDaemonTotemGroundEffectVortex", new PreloadConfigLine { Text = "Essence of Sorrow", FastColor = () => Settings.EssenceOfSorrow}},
                 { "Metadata/Monsters/Daemon/EssenceDaemonSummonKaruiSpirit", new PreloadConfigLine { Text = "Essence of Contempt", FastColor = () => Settings.EssenceOfContempt}},
                 { "Metadata/Monsters/Daemon/EssenceDaemonFireRuneTrap", new PreloadConfigLine { Text = "Essence of Rage", FastColor = () => Settings.EssenceOfRage}},
-                { "Metadata/Monsters/Daemon/EssenceDaemonSummonChaosGolem", new PreloadConfigLine { Text = "Essence of Dread", FastColor = () => Settings.EssenceOfDread}},
+                { "Metadata/Monsters/Daemon/EssenceDaemonSummonChaosGolem", new PreloadConfigLine { Text = "Essence of Dread (Suggest: Corruption)", FastColor = () => Settings.EssenceOfDread}},       //Suggest Corruption
                 { "Metadata/Monsters/Daemon/EssenceDaemonBloodProjectileDaemon", new PreloadConfigLine { Text = "Essence of Greed", FastColor = () => Settings.EssenceOfGreed}},
                 { "Metadata/Monsters/Daemon/EssenceDaemonSummonLivingCrystals", new PreloadConfigLine { Text = "Essence of Woe", FastColor = () => Settings.EssenceOfWoe}},
                 { "Metadata/Monsters/Daemon/EssenceDaemonSummonSpiders", new PreloadConfigLine { Text = "Essence of Doubt", FastColor = () => Settings.EssenceOfDoubt}},
@@ -135,7 +151,11 @@ namespace PoeHUD.Hud.Preload
 
             Preload = new Dictionary<string, PreloadConfigLine>
             {
-                {"Wild/StrDexInt", new PreloadConfigLine { Text = "Zana, Master Cartographer", FastColor = () => Settings.MasterZana }},
+				{"Metadata/NPC/League/DelveMiner", new PreloadConfigLine {Text = "Niko the Mad", FastColor = () => Settings.MasterNiko }},
+				{"Metadata/NPC/League/Einhar", new PreloadConfigLine {Text = "Einhar Frey", FastColor = () => Settings.MasterEinhar}},
+				{"Metadata/NPC/League/TreasureHunter", new PreloadConfigLine {Text = "Alva Valai", FastColor = () => Settings.MasterAlva }},
+				{"Metadata/NPC/League/BetrayalNinja", new PreloadConfigLine {Text = "Jun Ortoi", FastColor = () => Settings.MasterJun }},
+				{"Wild/StrDexInt", new PreloadConfigLine { Text = "Zana, Master Cartographer", FastColor = () => Settings.MasterZana }},
                 {"Wild/Int", new PreloadConfigLine { Text = "Catarina, Master of the Dead", FastColor = () => Settings.MasterCatarina }},
                 {"Wild/Dex", new PreloadConfigLine { Text = "Tora, Master of the Hunt", FastColor = () => Settings.MasterTora }},
                 {"Wild/DexInt", new PreloadConfigLine { Text = "Vorici, Master Assassin", FastColor = () => Settings.MasterVorici }},
@@ -191,11 +211,13 @@ namespace PoeHUD.Hud.Preload
 
         public override void Render()
         {
-            if (WinApi.IsKeyDown(Keys.F5)) // do a full refresh if F5 is hit
+            if (Settings.ReloadButton.PressedOnce()) // do a full refresh if F5 is hit
             {
+                DebugPlug.DebugPlugin.LogMsg("Looking for new preloads.", 1);
                 ResetArea();
                 Parse();
             }
+
             var UIHover = GameController.Game.IngameState.UIHover;
             var miniMap = GameController.Game.IngameState.IngameUi.Map.SmallMinimap;
 
@@ -206,12 +228,12 @@ namespace PoeHUD.Hud.Preload
                 Settings.Enable.Value = false;
             }
             if (autoHide && (UIHover.Address == 0x00 || UIHover.Tooltip.Address == 0x00 ||
-                             !UIHover.Tooltip.IsVisible))
+                !UIHover.Tooltip.IsVisible))
             {
                 autoHide = false;
                 Settings.Enable.Value = true;
             }
-            
+
             if (!holdKey && WinApi.IsKeyDown(Keys.F10))
             {
                 holdKey = true;
@@ -233,14 +255,12 @@ namespace PoeHUD.Hud.Preload
                 Size = new Size2F();
                 return;
             }
-            
-           /* if (isAreaChanged)
-            {
-                ResetArea();
-                Parse();
-                isAreaChanged = false;
-            }*/
-
+            /* if (isAreaChanged)
+             {
+                 ResetArea();
+                 Parse();
+                 isAreaChanged = false;
+             }*/
             Vector2 startPosition = StartDrawPointFunc();
             Vector2 position = startPosition;
             int maxWidth = 0;
@@ -266,26 +286,22 @@ namespace PoeHUD.Hud.Preload
             alerts.Clear();
             AreaNameColor = Settings.AreaTextColor;
             foundSpecificPerandusChest = false;
-            CountCoroutine = 0;
         }
 
         private void OnAreaChange(AreaController area)
         {
             ResetArea();
             essencefound = false;
-            var runParallel = (new Coroutine(ParseCoroutine(), nameof(PreloadAlertPlugin), "Area Change Preload Parse")).Run();
+            (new Coroutine(ParseCoroutine(), nameof(PreloadAlertPlugin), "Area Change Preload Parse")).Run();
             isAreaChanged = true;
-            runParallel.UpdateTicks(CountCoroutine);
         }
 
         IEnumerator ParseCoroutine()
         {
-            yield return new WaitTime(100);
+            yield return new WaitFunction(() => { return GameController.Game.IsGameLoading; });
+            //yield return new WaitTime(300);
             Parse();
-            
         }
-
-        private int CountCoroutine;
         private void Parse()
         {
             Memory memory = GameController.Memory;
@@ -294,7 +310,7 @@ namespace PoeHUD.Hud.Preload
 
             int areaChangeCount = GameController.Game.AreaChangeCount;
             long listIterator = memory.ReadLong(pFileRoot + 0x8, 0x0);
-            
+
             List<string> preloadStrings = new List<string>();
 
             for (int i = 0; i < count; i++)
@@ -310,19 +326,20 @@ namespace PoeHUD.Hud.Preload
                 {
                     continue;
                 }
-                
+
                 string text = memory.ReadStringU(memory.ReadLong(listIterator + 0x10), 512);
 
                 if (text.Contains('@')) { text = text.Split('@')[0]; }
 
                 preloadStrings.Add(text);
-                CountCoroutine++;
+
             }
 
             preloadStrings.Sort();
-         
-            
-           // File.WriteAllLines("preload.txt",preloadStrings);
+			if(Settings.DumpPreloads.Value)
+				File.WriteAllLines(Path.Combine(Path.GetDirectoryName(Assembly.GetEntryAssembly().Location), "DumpPreloads.txt"), preloadStrings);
+            OnPreloadReceived(preloadStrings);
+
             foreach (var strings in preloadStrings)
             {
                 CheckForPreload(strings);
@@ -353,7 +370,7 @@ namespace PoeHUD.Hud.Preload
                 return;
             }
 
-    
+
             if (Settings.Essence)
             {
                 PreloadConfigLine essence_alert = Essences.Where(kv => text
@@ -374,7 +391,7 @@ namespace PoeHUD.Hud.Preload
                 }
             }
 
-         
+
             PreloadConfigLine perandus_alert = PerandusLeague.Where(kv => text
                 .StartsWith(kv.Key, StringComparison.OrdinalIgnoreCase)).Select(kv => kv.Value).FirstOrDefault();
             if (perandus_alert != null && Settings.PerandusBoxes)
@@ -392,7 +409,7 @@ namespace PoeHUD.Hud.Preload
                 alerts.Add(new PreloadConfigLine { Text = "Unknown Perandus Chest", FastColor = () => Settings.PerandusChestStandard });
             }
 
-         
+
             PreloadConfigLine _alert = Strongboxes.Where(kv => text
                 .StartsWith(kv.Key, StringComparison.OrdinalIgnoreCase)).Select(kv => kv.Value).FirstOrDefault();
             if (_alert != null && Settings.Strongboxes)
@@ -401,7 +418,7 @@ namespace PoeHUD.Hud.Preload
                 return;
             }
 
-            
+
             PreloadConfigLine alert = Preload.Where(kv => text
                 .EndsWith(kv.Key, StringComparison.OrdinalIgnoreCase)).Select(kv => kv.Value).FirstOrDefault();
             if (alert != null && Settings.Exiles)
@@ -409,6 +426,27 @@ namespace PoeHUD.Hud.Preload
                 alerts.Add(alert);
                 return;
             }
+        }
+    }
+
+    public static class DictionaryExtensions
+    {
+        // Taken from: https://stackoverflow.com/a/2679857
+        // Works in C#3/VS2008:
+        // Returns a new dictionary of this ... others merged leftward.
+        // Keeps the type of 'this', which must be default-instantiable.
+        // Example: 
+        //   result = map.MergeLeft(other1, other2, ...)
+        public static T MergeLeft<T, TK, TV>(this T me, params IDictionary<TK, TV>[] others) where T : IDictionary<TK, TV>, new()
+        {
+            T newMap = new T();
+            foreach (IDictionary<TK, TV> src in new List<IDictionary<TK, TV>> { me }.Concat(others))
+            {
+                // ^-- echk. Not quite there type-system.
+                foreach (KeyValuePair<TK, TV> p in src) newMap[p.Key] = p.Value;
+            }
+
+            return newMap;
         }
     }
 }

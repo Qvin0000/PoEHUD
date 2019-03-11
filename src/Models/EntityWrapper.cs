@@ -1,9 +1,9 @@
+using System;
 using PoeHUD.Controllers;
 using PoeHUD.Models.Interfaces;
 using PoeHUD.Poe;
 using PoeHUD.Poe.Components;
 using System.Collections.Generic;
-using SharpDX;
 using Vector3 = SharpDX.Vector3;
 
 namespace PoeHUD.Models
@@ -19,11 +19,10 @@ namespace PoeHUD.Models
 
         public EntityWrapper(GameController Poe, Entity entity)
         {
-            
             gameController = Poe;
             internalEntity = entity;
             components = internalEntity.GetComponents();
-            if (gameController.Performance.Cache.Enable)
+            if (gameController.Cache.Enable)
             {
                 cacheComponents = new Dictionary<string, object>();
                 foreach (var component in components)
@@ -43,42 +42,45 @@ namespace PoeHUD.Models
         public Entity InternalEntity => internalEntity.Address == 0 ? null : internalEntity;
 
         public string Path { get; }
-        public bool IsValid =>  IsInList && cachedId == internalEntity.Id && internalEntity.IsValid;
+        public bool IsValid => internalEntity.IsValid && IsInList && cachedId == internalEntity.Id;
         public long Address => internalEntity.Address;
         public long Id => cachedId;
         public bool IsHostile => internalEntity.IsHostile;
         public long LongId { get; }
         public bool IsAlive => GetComponent<Life>().CurHP > 0;
-  
+        public int DistanceFromPlayer => GetDistanceFromPlayer();
+        public Positioned PositionedComp => internalEntity.PositionedComp;
 
-   
-        Render render;
         public Vector3 Pos
         {
             get
             {
-               
-          
-                if(render==null) render = GetComponent<Render>();
-                return new Vector3(render.X, render.Y, render.Z);
+                var p = GetComponent<Render>();
+                return new Vector3(p.X, p.Y, p.Z + p.Bounds.Z);
             }
         }
 
-        private Positioned _positioned;
-        public Vector2 GridPos
+        public Vector3 BoundsCenterPos
         {
             get
             {
-                if (_positioned == null) _positioned = GetComponent<Positioned>();
-                return _positioned.GridPos;
+                var p = GetComponent<Render>();
+                return new Vector3(p.X, p.Y, p.Z);
             }
         }
 
-    
+        private int GetDistanceFromPlayer()
+        {
+            var p        = GetComponent<Render>();
+            var player   = GameController.Instance.Player;
+            var distance = Math.Sqrt(Math.Pow(player.Pos.X - p.X, 2) + Math.Pow(player.Pos.Y - p.Y, 2));
+            return (int)distance;
+        }
+
         public T GetComponent<T>() where T : Component, new()
         {
             string name = typeof(T).Name;
-            if (gameController.Performance.Cache.Enable)
+            if (gameController.Cache.Enable)
             {
                 if (!cacheComponents.ContainsKey(name) || cacheComponents[name] == null)
                 {

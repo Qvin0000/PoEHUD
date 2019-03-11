@@ -10,9 +10,12 @@ namespace PoeHUD.Framework
         public string Name { get; }
 
         readonly List<Coroutine> _coroutines = new List<Coroutine>();
-        readonly List<(string name,string owner,long ticks,DateTime end, DateTime start)> _finishedCoroutines = new List<(string name,string owner,long ticks, DateTime end, DateTime start)>();
+        readonly  List<Tuple<string,string,long,DateTime,DateTime>> _finishedCoroutines = new List<Tuple<string, string, long, DateTime, DateTime>>();
         public bool IsRunning => _coroutines.Count > 0;
-        public IEnumerable<(string Name,string Owner,long Ticks, DateTime End, DateTime Started)> FinishedCoroutines => _finishedCoroutines;
+
+        public IEnumerable<Tuple<string,string,long,DateTime,DateTime>>
+            FinishedCoroutines => _finishedCoroutines;
+
         public int FinishedCoroutineCount { get; private set; }
         public IEnumerable<Coroutine> Coroutines => _coroutines;
         public IEnumerable<Coroutine> WorkingCoroutines => _coroutines.Where(x => x.DoWork);
@@ -90,14 +93,13 @@ namespace PoeHUD.Framework
                             }
                             catch (Exception e) { DebugPlug.DebugPlugin.LogMsg($"Coroutine {_coroutines[i].Name} error: {e.Message}", 1); }
                         }
+                            
                     }
                     else
                     {
                         if (_coroutines[i] != null)
                         {
-                            _finishedCoroutines.Add(
-                                (_coroutines[i].Name, _coroutines[i].Owner, _coroutines[i].Ticks, DateTime.Now,
-                                _coroutines[i].Started));
+                            _finishedCoroutines.Add(new Tuple<string, string, long, DateTime, DateTime>(_coroutines[i].Name,_coroutines[i].Owner,_coroutines[i].Ticks,_coroutines[i].Started,DateTime.Now));
                             FinishedCoroutineCount++;
                         }
                         _coroutines.RemoveAt(i);

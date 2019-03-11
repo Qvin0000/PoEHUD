@@ -1,5 +1,6 @@
 using PoeHUD.Framework;
 using System;
+using System.Linq;
 using System.Collections.Generic;
 
 namespace PoeHUD.Poe.FilesInMemory
@@ -23,11 +24,17 @@ namespace PoeHUD.Poe.FilesInMemory
             loadItems();
         }
 
+        public StatRecord GetStatByAddress(long address)
+        {
+            return records.Values.ToList().Find(x => x.Address == address);
+        }
+
         private void loadItems()
         {
+			int iCounter = 1;
             foreach (long addr in RecordAddresses())
             {
-                var r = new StatRecord(M, addr);
+                var r = new StatRecord(M, addr, iCounter++);
                 if (!records.ContainsKey(r.Key))
                     records.Add(r.Key, r);
             }
@@ -36,16 +43,19 @@ namespace PoeHUD.Poe.FilesInMemory
         public class StatRecord
         {
             public readonly string Key;
+            public readonly long Address;
             public StatType Type;
             public bool Unknown4;
             public bool Unknown5;
             public bool Unknown6;
             public bool UnknownB;
             public string UserFriendlyName;
+			public int ID;
             // more fields can be added (see in visualGGPK)
 
-            public StatRecord(Memory m, long addr)
+            public StatRecord(Memory m, long addr, int iCounter)
             {
+                Address = addr;
                 Key = m.ReadStringU(m.ReadLong(addr + 0), 255);
                 Unknown4 = m.ReadByte(addr + 0x8) != 0;
                 Unknown5 = m.ReadByte(addr + 0x9) != 0;
@@ -53,6 +63,7 @@ namespace PoeHUD.Poe.FilesInMemory
                 Type = Key.Contains("%") ? StatType.Percents : (StatType)m.ReadInt(addr + 0xB);
                 UnknownB = m.ReadByte(addr + 0xF) != 0;
                 UserFriendlyName = m.ReadStringU(m.ReadLong(addr + 0x10), 255);
+				ID = iCounter;
             }
 
             public override string ToString()

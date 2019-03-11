@@ -10,126 +10,144 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Forms;
-using PoeHUD.DebugPlug;
 
 namespace PoeHUD.Hud.Dps
 {
     public class DpsMeterPlugin : SizedPlugin<DpsMeterSettings>
     {
+        private const double DPS_PERIOD = 0.2;
+        private DateTime lastTime;
         private readonly Dictionary<long, int> lastMonsters = new Dictionary<long, int>();
-        private readonly Dictionary<long, int> Monsters = new Dictionary<long, int>();
-        private double MaxDps; 
-        private double CurrentDps; 
-        private double CurrentDmg; 
-        private double[] damageMemory;
-        private int damageMemoryIndex;
-        readonly Coroutine dpsCoroutine;
-        int sumHp;
+        private double MaxDpsAoe;
+        private double MaxDpsSingle;
+        private double CurrentDpsAoe;
+        private double CurrentDpsSingle;
+        private double CurrentDmgAoe;
+        private double CurrentDmgSingle;
+        private double[] SingleDamageMemory = new double[5];
+        private double[] AOEDamageMemory = new double[5];
+
         public DpsMeterPlugin(GameController gameController, Graphics graphics, DpsMeterSettings settings)
             : base(gameController, graphics, settings)
         {
-            Settings.ClearNode.OnPressed += Clear; 
+            Settings.ClearNode.OnPressed += Clear;
+
+            lastTime = DateTime.Now;
             GameController.Area.OnAreaChange += area =>
             {
                 Clear();
             };
-            damageMemory = new double[10];
-
-          
-            dpsCoroutine = (new Coroutine(() => { 
-                    Monsters.Clear();
-                    damageMemoryIndex++;
-                    if (damageMemoryIndex >= damageMemory.Length)
-                    {
-                        damageMemoryIndex = 0;
-                    }
-                    var curDmg = CalculateDps(Settings.CalcAOE); 
-                    damageMemory[damageMemoryIndex] = curDmg; 
-                    if (curDmg > 0) 
-                    { 
-                        CurrentDmg = curDmg; 
-                        CurrentDps = damageMemory.Sum(); 
-                        MaxDps = Math.Max(CurrentDps, MaxDps); 
-                    } 
-                    if(settings.ShowInformationAround)
-                        sumHp = Monsters.Sum(pair => pair.Value);
-                }, new WaitTime(100), nameof(DpsMeterPlugin), "Calculate DPS"){Priority = CoroutinePriority.High})
-                .AutoRestart(GameController.CoroutineRunner).Run();
         }
 
         private void Clear()
         {
-            damageMemory = new double[1000/GameController.Performance.Settings.DpsUpdateTime];
-            MaxDps = 0;
-            CurrentDps = 0;
-            CurrentDmg = 0;
+            MaxDpsAoe = 0;
+            MaxDpsSingle = 0;
+            CurrentDpsAoe = 0;
+            CurrentDpsSingle = 0;
+            CurrentDmgAoe = 0;
+            CurrentDmgSingle = 0;
             lastMonsters.Clear();
-
+            lastTime = DateTime.Now;
+            SingleDamageMemory = new double[5];
+            AOEDamageMemory = new double[5];
+            lastMonsters.Clear();
         }
+
 
         public override void Render()
         {
-            try
+            if (!Settings.Enable ||
+                !Settings.ShowInTown && GameController.Area.CurrentArea.IsTown ||
+                !Settings.ShowInTown && GameController.Area.CurrentArea.IsHideout)
+            { return; }
+
+            DateTime nowTime = DateTime.Now;
+            TimeSpan elapsedTime = nowTime - lastTime;
+            if (elapsedTime.TotalSeconds > DPS_PERIOD)
             {
-                base.Render();
-                if (!Settings.Enable ||
-                    !Settings.ShowInTown && GameController.Area.CurrentArea.IsTown ||
-                    !Settings.ShowInTown && GameController.Area.CurrentArea.IsHideout 
-                    || GameController.Game.IngameState.IngameUi.InventoryPanel.IsVisible 
-                    || GameController.Game.IngameState.UIHover.Width<0)
-                {
-                    dpsCoroutine.Pause();
-                    return;
+                CalculateDps(out var aoe, out var single);
+
+                //Shift array
+                //{ 1, 2, 3, 4, 5 }
+                //{ 0, 1, 2, 3, 4 }
+                Array.Copy(AOEDamageMemory, 0, AOEDamageMemory, 1, AOEDamageMemory.Length - 1);
+                Array.Copy(SingleDamageMemory, 0, SingleDamageMemory, 1, SingleDamageMemory.Length - 1);
+
+                AOEDamageMemory[0] = aoe;
+                SingleDamageMemory[0] = single;
+
+                if (single > 0)
+                { 
+                    CurrentDmgAoe = aoe;
+                    CurrentDmgSingle = single;
+                    CurrentDpsAoe = AOEDamageMemory.Sum();
+                    CurrentDpsSingle = SingleDamageMemory.Sum();
+
+                    MaxDpsAoe = Math.Max(CurrentDpsAoe, MaxDpsAoe);
+                    MaxDpsSingle = Math.Max(CurrentDpsSingle, MaxDpsSingle);
                 }
 
-                dpsCoroutine.Resume();
-
-                Vector2 position = StartDrawPointFunc();
-                string monsterAround = "";
-                string monsterAroundHp = "";
-                if (Settings.ShowInformationAround)
-                {
-                 monsterAround = Monsters.Count + " monsters" + Environment.NewLine;
-                 monsterAroundHp = sumHp + " hp" + Environment.NewLine;
-                }
-                Size2 dpsSize = Graphics.DrawText(CurrentDps  + " dps", Settings.DpsTextSize, position, Settings.DpsFontColor, FontDrawFlags.Right); 
-                Size2 peakSize = Graphics.DrawText(MaxDps + " top dps", Settings.PeakDpsTextSize, position.Translate(0, dpsSize.Height), Settings.PeakFontColor, FontDrawFlags.Right);
-                int height = dpsSize.Height + peakSize.Height;
-                int width = Math.Max(1, dpsSize.Width);
-                if (Settings.ShowInformationAround)
-                {
-                    Size2 monsterAroundSize = Graphics.DrawText(monsterAround, Settings.DpsTextSize,
-                        position.Translate(0, peakSize.Height+dpsSize.Height), Settings.PeakFontColor, FontDrawFlags.Right);
-                    Size2 monsterAroundHpSize = Graphics.DrawText(monsterAroundHp, Settings.DpsTextSize,
-                        position.Translate(0, monsterAroundSize.Height+peakSize.Height+dpsSize.Height), Settings.PeakFontColor, FontDrawFlags.Right);
-                    height += monsterAroundSize.Height + monsterAroundHpSize.Height;
-                    width = Math.Max(width, monsterAroundSize.Width);
-                    width = Math.Max(width, monsterAroundHpSize.Width);
-                }
-               
-                
-             
-                var bounds = new RectangleF(position.X - 5 - width - 41, position.Y - 5, width + 50, height + 10);
-
-                Graphics.DrawImage("preload-start.png", bounds, Settings.BackgroundColor);
-                Graphics.DrawImage("preload-end.png", bounds, Settings.BackgroundColor);
-
-                Size = bounds.Size;
-                Margin = new Vector2(0, 5);
+                lastTime = nowTime;
             }
-            catch
+
+            Vector2 position = StartDrawPointFunc();
+
+
+            string layoutFix = Settings.ShowAOE.Value ? "      " : "";
+            int offsetY = 0;
+            if (Settings.ShowCurrentHitDamage.Value)
             {
-                // do nothing
+                if(Settings.ShowAOE.Value)
+                offsetY += Graphics.DrawText($"{CurrentDmgAoe}{layoutFix}  aoe hit", Settings.TextSize, position, Settings.DpsFontColor, FontDrawFlags.Right).Height;
+                offsetY += Graphics.DrawText($"{CurrentDmgSingle}{layoutFix}        hit", Settings.TextSize, position.Translate(0, offsetY), Settings.PeakFontColor, FontDrawFlags.Right).Height;
             }
+
+            if (Settings.ShowAOE.Value)
+                offsetY += Graphics.DrawText($"{CurrentDpsAoe}{layoutFix} aoe dps", Settings.TextSize, position.Translate(0, offsetY), Settings.PeakFontColor, FontDrawFlags.Right).Height;
+            offsetY += Graphics.DrawText($"{CurrentDpsSingle}{layoutFix}       dps", Settings.TextSize, position.Translate(0, offsetY), Settings.PeakFontColor, FontDrawFlags.Right).Height;
+
+            if (Settings.ShowAOE.Value)
+                offsetY += Graphics.DrawText($"{MaxDpsAoe} max aoe dps", Settings.TextSize, position.Translate(0, offsetY), Settings.PeakFontColor, FontDrawFlags.Right).Height;
+            offsetY += Graphics.DrawText($"{MaxDpsSingle}{layoutFix} max dps", Settings.TextSize, position.Translate(0, offsetY), Settings.PeakFontColor, FontDrawFlags.Right).Height;
+
+            var width = 150;
+            var bounds = new RectangleF(position.X - 5 - width - 41, position.Y - 5, width + 50, offsetY + 10);
+
+            Graphics.DrawImage("preload-start.png", bounds, Settings.BackgroundColor);
+            Graphics.DrawImage("preload-end.png", bounds, Settings.BackgroundColor);
+
+            Size = bounds.Size;
+            Margin = new Vector2(0, 5);
         }
 
-        private double CalculateDps(bool aoe)
+        private List<EntityWrapper> CachedMonsters = new List<EntityWrapper>();
+        protected override void OnEntityAdded(EntityWrapper entityWrapper)
         {
-            int totalDamage = 0;
-            foreach (EntityWrapper monster in GameController.Entities.Where(x => x.HasComponent<Monster>() && x.IsHostile))
+            if (!entityWrapper.HasComponent<Monster>() || !entityWrapper.IsHostile || !entityWrapper.IsAlive) return;
+
+            if (!CachedMonsters.Contains(entityWrapper))
+                CachedMonsters.Add(entityWrapper);
+        }
+
+        protected override void OnEntityRemoved(EntityWrapper entityWrapper)
+        {
+            CachedMonsters.Remove(entityWrapper);
+        }
+
+        private void CalculateDps(out int aoeDamage, out int singleDamage)
+        {
+            aoeDamage = 0;
+            singleDamage = 0;
+            foreach (var monster in CachedMonsters.ToArray())
             {
                 var life = monster.GetComponent<Life>();
+                if(!monster.IsAlive && Settings.HasCullingStrike.Value)
+                {
+                    continue;
+                }
                 int hp = monster.IsAlive ? life.CurHP + life.CurES : 0;
+
                 if (hp > -1000000 && hp < 10000000)
                 {
                     int lastHP;
@@ -137,19 +155,17 @@ namespace PoeHUD.Hud.Dps
                     {
                         if (lastHP != hp)
                         {
-                            if (aoe)
-                                totalDamage += lastHP - hp;
-                            else
-                                totalDamage = Math.Max(totalDamage, lastHP - hp);
+                            int dmg = lastHP - hp;
+	                        if (dmg > life.MaxHP + life.MaxES)
+		                        dmg = life.MaxHP + life.MaxES;
+
+                            aoeDamage += dmg;
+                            singleDamage = Math.Max(singleDamage, dmg);
                         }
                     }
                     lastMonsters[monster.Id] = hp;
-                    if (hp > 0)
-                        Monsters[monster.Id] = hp;
                 }
             }
-            return totalDamage < 0 ? 0 : totalDamage;
         }
     }
-    
 }

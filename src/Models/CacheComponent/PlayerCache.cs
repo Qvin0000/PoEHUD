@@ -1,7 +1,4 @@
-﻿using System.ComponentModel;
-using System.Windows.Forms;
-using PoeHUD.Controllers;
-using PoeHUD.Poe;
+﻿using PoeHUD.Poe;
 using PoeHUD.Poe.Components;
 
 namespace PoeHUD.Models.CacheComponent

@@ -1,10 +1,12 @@
 ﻿using System;
+using Newtonsoft.Json;
 
 namespace PoeHUD.Hud.Settings
 {
     public sealed class ToggleNode
     {
-        public Action OnValueChanged;
+        [JsonIgnore]
+        public Action OnValueChanged = delegate { };
         private bool value;
 
         public ToggleNode()
@@ -29,7 +31,14 @@ namespace PoeHUD.Hud.Settings
                 if (this.value != value)
                 {
                     this.value = value;
-                    OnValueChanged?.Invoke();
+                    try
+                    {
+                        OnValueChanged();
+                    }
+                    catch (Exception)
+                    {
+                        DebugPlug.DebugPlugin.LogMsg("Error in function that subscribed for: ToggleNode.OnValueChanged", 10, SharpDX.Color.Red);
+                    }
                 }
             }
         }

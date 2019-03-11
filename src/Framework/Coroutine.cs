@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections;
-using System.Diagnostics;
 using PoeHUD.Controllers;
 using PoeHUD.Framework.Helpers;
 
@@ -14,15 +13,15 @@ namespace PoeHUD.Framework
         public string Owner { get; private set; }
         public bool DoWork { get; private set; }
         public bool AutoResume { get; set; } = true;
-        public string TimeoutForAction { get;private set; }
+        public string TimeoutForAction { get; private set; }
         public long Ticks { get; private set; } = -1;
-        public CoroutinePriority Priority { get; set; } =  CoroutinePriority.Normal;
+        public CoroutinePriority Priority { get; set; } = CoroutinePriority.Normal;
         public DateTime Started { get; set; }
-        public Action Action { get; private set; }
+        public Action Action { get; }
         public YieldBase Condition { get; private set; }
-        
+
         public bool ThisIsSimple => Action != null;
-       
+
         public Coroutine(Action action, YieldBase condition, string owner, string name = null, bool autoStart = true)
         {
             DoWork = autoStart;
@@ -42,6 +41,7 @@ namespace PoeHUD.Framework
             Owner = owner;
             Action = action;
             Condition = condition;
+
             IEnumerator CoroutineAction(Action a)
             {
                 while (true)
@@ -51,6 +51,7 @@ namespace PoeHUD.Framework
                     yield return Condition.GetEnumerator();
                 }
             }
+
             Name = name ?? MathHepler.GetRandomWord(13);
             _enumerator = CoroutineAction(action);
         }
@@ -58,7 +59,6 @@ namespace PoeHUD.Framework
         public Coroutine(Action action, int waitMilliseconds, string owner, string name = null, bool autoStart = true) :
             this(action, new WaitTime(waitMilliseconds), owner, name, autoStart)
         {
-            
         }
 
 
@@ -70,17 +70,14 @@ namespace PoeHUD.Framework
             Name = name ?? MathHepler.GetRandomWord(13);
             Owner = owner;
             _enumerator = enumerator;
-       
         }
 
         public IEnumerator Wait()
         {
             while (!IsDone)
-            {
                 yield return null;
-            }
         }
-
+        
         public void UpdateCondtion(YieldBase condition)
         {
             switch (condition)
@@ -102,18 +99,21 @@ namespace PoeHUD.Framework
         {
             if (cor.ThisIsSimple)
             {
-              return  (new Coroutine(cor.Action, cor.Condition, cor.Owner, cor.Name,cor.DoWork)
-                  {Priority = cor.Priority, AutoResume =  cor.AutoResume, DoWork = cor.DoWork});
+                return new Coroutine(cor.Action, cor.Condition, cor.Owner, cor.Name, cor.DoWork)
+                    {Priority = cor.Priority, AutoResume = cor.AutoResume, DoWork = cor.DoWork};
             }
-            return (new Coroutine(cor.GetEnumerator(),cor.Owner,cor.Name,cor.DoWork)
-                {Priority = cor.Priority, AutoResume = cor.AutoResume, DoWork = cor.DoWork});
+            return new Coroutine(cor.GetEnumerator(), cor.Owner, cor.Name, cor.DoWork)
+                {Priority = cor.Priority, AutoResume = cor.AutoResume, DoWork = cor.DoWork};
         }
-        public IEnumerator GetEnumerator() => _enumerator;
-        public void UpdateTicks(int tick) => Ticks = tick;
-        public void Resume()
+
+        public IEnumerator GetEnumerator()
         {
-            DoWork = true;
+            return _enumerator;
         }
+
+        public void UpdateTicks(int tick) => Ticks = tick;
+
+        public void Resume() => DoWork = true;
 
         public void Pause(bool force = false)
         {
@@ -135,22 +135,19 @@ namespace PoeHUD.Framework
 
     public class WaitRender : YieldBase
     {
-        private readonly long _howManyRenderCountWait;
-        public long HowManyRenderCountWait => _howManyRenderCountWait;
+        public long HowManyRenderCountWait { get; }
 
         public WaitRender(long howManyRenderCountWait = 1)
         {
-            _howManyRenderCountWait = howManyRenderCountWait;
+            HowManyRenderCountWait = howManyRenderCountWait;
             Current = GetEnumerator();
         }
 
         public sealed override IEnumerator GetEnumerator()
         {
-            var wait = GameController.RenderCount +_howManyRenderCountWait;
-            while (GameController.RenderCount < wait)
-            {
+            var wait = GameController.Instance.RenderCount + HowManyRenderCountWait;
+            while (GameController.Instance.RenderCount < wait)
                 yield return null;
-            }
         }
     }
 
@@ -159,9 +156,7 @@ namespace PoeHUD.Framework
         public WaitFunction(Func<bool> fn)
         {
             while (fn())
-            {
                 Current = GetEnumerator();
-            }
         }
 
         public sealed override IEnumerator GetEnumerator()
@@ -172,40 +167,36 @@ namespace PoeHUD.Framework
 
     public class WaitTime : YieldBase
     {
-        private readonly int _milliseconds;
-        public int Milliseconds => _milliseconds;
+        public int Milliseconds { get; }
 
         public WaitTime(int milliseconds)
         {
-            _milliseconds = milliseconds;
+            Milliseconds = milliseconds;
             Current = GetEnumerator();
         }
 
 
         public sealed override IEnumerator GetEnumerator()
         {
-            var wait = sw.ElapsedMilliseconds + _milliseconds;
-            while (sw.ElapsedMilliseconds < wait)
-            {
+            var wait = GameController.Instance.MainTimer.ElapsedMilliseconds + Milliseconds;
+            while (GameController.Instance.MainTimer.ElapsedMilliseconds < wait)
                 yield return null;
-            }
         }
     }
 
     public abstract class YieldBase : IEnumerable, IEnumerator
     {
-       protected static readonly Stopwatch sw = Stopwatch.StartNew();
-        public bool MoveNext() 
-        { 
-            return Current != null && ((IEnumerator) Current).MoveNext(); 
-        } 
+        public bool MoveNext()
+        {
+            return Current != null && ((IEnumerator) Current).MoveNext();
+        }
 
         public void Reset()
         {
         }
 
         public object Current { get; protected set; }
-        
+
         public abstract IEnumerator GetEnumerator();
     }
 

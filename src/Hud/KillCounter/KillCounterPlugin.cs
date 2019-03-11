@@ -17,7 +17,7 @@ namespace PoeHUD.Hud.KillCounter
     public class KillCounterPlugin : SizedPlugin<KillCounterSettings>
     {
         private readonly HashSet<EntityWrapper> aliveEntities;
-        private readonly Dictionary<int, HashSet<long>> countedIds;
+        private readonly Dictionary<uint, HashSet<long>> countedIds;
         private readonly GameController gameController;
         private readonly Dictionary<MonsterRarity, int> counters;
         private int summaryCounter;
@@ -28,7 +28,7 @@ namespace PoeHUD.Hud.KillCounter
         {
             this.gameController = gameController;
             aliveEntities = new HashSet<EntityWrapper>();
-            countedIds = new Dictionary<int, HashSet<long>>();
+            countedIds = new Dictionary<uint, HashSet<long>>();
             counters = new Dictionary<MonsterRarity, int>();
             Init();
             GameController.Area.OnAreaChange += area =>
@@ -113,13 +113,9 @@ namespace PoeHUD.Hud.KillCounter
                 monstersHashSet = new HashSet<long>();
                 countedIds[areaHash] = monstersHashSet;
             }
-            var pos = entityWrapper.GetComponent<Positioned>();
-            var hashMonster = entityWrapper.Path.Length * pos.GridX * pos.GridY;
-            //var hashMonster = entityWrapper.MemoryId;
-           
-            if (!monstersHashSet.Contains(hashMonster))
+            if (!monstersHashSet.Contains(entityWrapper.Id))
             {
-                monstersHashSet.Add(hashMonster);
+                monstersHashSet.Add(entityWrapper.Id);
                 MonsterRarity rarity = entityWrapper.GetComponent<ObjectMagicProperties>().Rarity;
                 if (entityWrapper.IsHostile && counters.ContainsKey(rarity))
                 {

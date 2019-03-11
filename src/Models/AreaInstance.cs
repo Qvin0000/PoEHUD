@@ -6,26 +6,27 @@ namespace PoeHUD.Models
     public sealed class AreaInstance
     {
         public int RealLevel { get; }
-        public int NominalLevel { get; }
         public string Name { get; }
         public int Act { get; }
         public bool IsTown { get; }
         public bool IsHideout { get; }
         public bool HasWaypoint { get; }
-        public int Hash { get; }
+        public uint Hash { get; }
 
         public DateTime TimeEntered = DateTime.Now;
 
-        public AreaInstance(AreaTemplate area, int hash, int realLevel)
+		public AreaTemplate Area { get; }
+
+        public AreaInstance(AreaTemplate area, uint hash, int realLevel)
         {
+	        Area = area;
             Hash = hash;
             RealLevel = realLevel;
-            NominalLevel = area.NominalLevel;
             Name = area.Name;
             Act = area.Act;
             IsTown = area.IsTown;
             HasWaypoint = area.HasWaypoint;
-            IsHideout = Name.Contains("Hideout");
+            IsHideout = area.RawName.ToLower().Contains("hideout");
         }
 
         public override string ToString()

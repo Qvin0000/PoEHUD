@@ -9,12 +9,10 @@ namespace PoeHUD.Framework
 {
     public class GameWindow
     {
-        private readonly GameController _gameController;
         private readonly IntPtr handle;
 
-        public GameWindow(Process process,GameController gameController)
+        public GameWindow(Process process)
         {
-            _gameController = gameController;
             Process = process;
             handle = process.MainWindowHandle;
         }
@@ -23,9 +21,9 @@ namespace PoeHUD.Framework
 
         public RectangleF GetWindowRectangle()
         {
-            if (_gameController.Performance.Cache.Enable)
+            if (GameController.Instance.Cache.Enable)
             {
-                return _gameController.Performance.Cache.Window;
+                return GameController.Instance.Cache.Window;
             }
             return GetWindowRectangleReal();
         }
@@ -34,6 +32,7 @@ namespace PoeHUD.Framework
             Rectangle rectangle = WinApi.GetClientRectangle(handle);
             return new RectangleF(rectangle.X, rectangle.Y, rectangle.Width, rectangle.Height);
         }
+
         public bool IsForeground()
         {
             return WinApi.IsForegroundWindow(handle);

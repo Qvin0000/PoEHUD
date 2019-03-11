@@ -1,9 +1,13 @@
 using SharpDX;
 using System.Collections.Generic;
 using System.Linq;
+using PoeHUD.Controllers;
+using PoeHUD.Poe.Elements;
 
 namespace PoeHUD.Poe
 {
+    using RemoteMemoryObjects;
+
     public class Element : RemoteMemoryObject
     {
         public const int OffsetBuffers = 0x6EC;
@@ -11,38 +15,18 @@ namespace PoeHUD.Poe
         // dd (something zero)
         // 16 dup <128-bytes structure>
         // then the rest is
-
-        public int vTable => M.ReadInt(Address + 0);
-
-        public long ChildCount =>
-        (Game.Performance.ReadMemWithCache(M.ReadLong, Address + 0x44 + OffsetBuffers, Game.Performance.meanLatency) -
-         Game.Performance.ReadMemWithCache(M.ReadLong, Address + 0x3c + OffsetBuffers, Game.Performance.meanLatency)) / 8;
-
-        public bool IsVisibleLocal =>
-            (Game.Performance.ReadMemWithCache(M.ReadInt, Address + 0x94 + OffsetBuffers, Game.Performance.meanLatency) & 1) == 1;
-
+        
+        public long ChildCount => (M.ReadLong(Address + 0x44 + OffsetBuffers) - M.ReadLong(Address + 0x3c + OffsetBuffers)) / 8;
+        public bool IsVisibleLocal => (M.ReadInt(Address + 0x94 + OffsetBuffers) & 1) == 1;
         public Element Root => ReadObject<Element>(Address + 0xC4 + OffsetBuffers);
-
-         public Element Parent => ReadObject<Element>(Address + 0xCC + OffsetBuffers);
-
-        public float X => Game.Performance.ReadMemWithCache(M.ReadFloat, Address + 0xD4 + OffsetBuffers,
-            Game.Performance.skipTicksRender * 2);
-
-        public float Y => Game.Performance.ReadMemWithCache(M.ReadFloat, Address + 0xD8 + OffsetBuffers,
-            Game.Performance.skipTicksRender * 2);
-
-        public Element Tooltip => ReadObject<Element>(Address + 0x104 + OffsetBuffers);
+        public Element Parent => ReadObject<Element>(Address + 0xCC + OffsetBuffers);
+        public float X => M.ReadFloat(Address + 0xD4 + OffsetBuffers);
+        public float Y => M.ReadFloat(Address + 0xD8 + OffsetBuffers);
+        public Element Tooltip => ReadObject<Element>(Address + 0x104 + OffsetBuffers); //0x7F0
         public float Scale => M.ReadFloat(Address + 0x1D0 + OffsetBuffers);
-        private float lastUpdate;
-        private float _width;
-        private float _height;
-
-        public float Width => Game.Performance.ReadMemWithCache(M.ReadFloat, Address + 0x20C + OffsetBuffers,
-            Game.Performance.skipTicksRender * 2);
-
-        public float Height => Game.Performance.ReadMemWithCache(M.ReadFloat, Address + 0x210 + OffsetBuffers,
-            Game.Performance.skipTicksRender * 2);
-
+        public float Width => M.ReadFloat(Address + 0x21C + OffsetBuffers);
+        public float Height => M.ReadFloat(Address + 0x220 + OffsetBuffers);
+        public string Text => AsObject<EntityLabel>().Text;
         public bool isHighlighted => M.ReadByte(Address + 0x948) > 0;
 
         public bool IsVisible
@@ -56,16 +40,15 @@ namespace PoeHUD.Poe
         {
             const int listOffset = 0x3C + OffsetBuffers;
             var list = new List<T>();
-            if (M.ReadLong(Address + listOffset + 8) == 0 || M.ReadLong(Address + listOffset) == 0 || ChildCount > 1000)
+            if (M.ReadLong(Address + listOffset + 8) == 0 || M.ReadLong(Address + listOffset) == 0 ||
+                ChildCount > 1000)
             {
                 return list;
             }
-
             for (int i = 0; i < ChildCount; i++)
             {
                 list.Add(GetObject<T>(M.ReadLong(Address + listOffset, i * 8)));
             }
-
             return list;
         }
 
@@ -81,7 +64,6 @@ namespace PoeHUD.Poe
                 hashSet.Add(parent);
                 parent = parent.Parent;
             }
-
             return list;
         }
 
@@ -89,12 +71,12 @@ namespace PoeHUD.Poe
         {
             float num = 0;
             float num2 = 0;
-            foreach (Element current in GetParentChain())
+	        var rootScale = Game.IngameState.UIRoot.Scale;
+            foreach (var current in GetParentChain())
             {
-                num += current.X;
-                num2 += current.Y;
+                num += current.X * current.Scale / rootScale;
+                num2 += current.Y * current.Scale / rootScale;
             }
-
             return new Vector2(num, num2);
         }
 
@@ -106,9 +88,12 @@ namespace PoeHUD.Poe
             float ratioFixMult = width / height / 1.6f;
             float xScale = width / 2560f / ratioFixMult;
             float yScale = height / 1600f;
-            float num = (vPos.X + X) * xScale;
-            float num2 = (vPos.Y + Y) * yScale;
-            return new RectangleF(num, num2, xScale * Width, yScale * Height);
+
+	        var rootScale = Game.IngameState.UIRoot.Scale;
+
+            float num = (vPos.X + X * Scale / rootScale) * xScale;
+            float num2 = (vPos.Y + Y * Scale / rootScale) * yScale;
+            return new RectangleF(num, num2, xScale * Width * Scale / rootScale, yScale * Height * Scale / rootScale);
         }
 
         public Element GetChildFromIndices(params int[] indices)
@@ -122,15 +107,14 @@ namespace PoeHUD.Poe
                     return null;
                 }
             }
-
             return poe_UIElement;
         }
 
         public Element GetChildAtIndex(int index)
         {
-            return index >= ChildCount
-                ? null
-                : GetObject<Element>(M.ReadLong(Address + 0x24 + OffsetBuffers, index * 8));
+            return index >= ChildCount ? null : GetObject<Element>(M.ReadLong(Address + 0x24 + OffsetBuffers, index * 8));
         }
+
+	    public Element this[int index] => GetChildAtIndex(index);
     }
 }

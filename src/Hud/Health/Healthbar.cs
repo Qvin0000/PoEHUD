@@ -23,7 +23,7 @@ namespace PoeHUD.Hud.Health
             "Metadata/Monsters/Frog/FrogGod/SilverOrb",
             "Metadata/Monsters/Frog/FrogGod/SilverPool"
         };
-
+        
         public HealthBar(EntityWrapper entity, HealthBarSettings settings)
         {
             Entity = entity;

@@ -1,12 +1,6 @@
-﻿using System.Collections.Generic;
-using PoeHUD.Controllers;
-using PoeHUD.DebugPlug;
-using PoeHUD.Framework;
-using PoeHUD.Framework.Helpers;
-using PoeHUD.Hud.Performance;
+﻿using PoeHUD.Controllers;
 using PoeHUD.Models.CacheComponent;
 using PoeHUD.Poe;
-using PoeHUD.Poe.Components;
 using PoeHUD.Poe.RemoteMemoryObjects;
 using SharpDX;
 
@@ -23,10 +17,9 @@ namespace PoeHUD.Models
         private IngameData _data;
         private DiagnosticElement _fpsRectangle;
         private DiagnosticElement _latencyRectangle;
-        private Element _questTracker;
-        private Element _GemLvlUpPanel;
         private Entity _localPlayer;
         private RectangleF _window;
+        private PlayerCache _player;
         private bool _enable = true;
 
         private static Cache _instance;
@@ -80,7 +73,7 @@ namespace PoeHUD.Models
                     _serverData = value;
             }
         }
-
+    
         public IngameData Data
         {
             get => _data;
@@ -110,24 +103,7 @@ namespace PoeHUD.Models
                     _latencyRectangle = value;
             }
         }
-        public Element QuestTracker
-        {    
-            get => _questTracker;
-            set
-            {
-                if (_questTracker == null)
-                    _questTracker = value;
-            }
-        }
-        public Element GemLvlUpPanel
-        {
-            get => _GemLvlUpPanel;
-            set
-            {
-                if (_GemLvlUpPanel == null)
-                    _GemLvlUpPanel = value;
-            }
-        }
+
         public Entity LocalPlayer
         {
             get => _localPlayer;
@@ -137,6 +113,8 @@ namespace PoeHUD.Models
                     _localPlayer = value;
             }
         }
+
+        public PlayerCache Player => _player ?? (_player = new PlayerCache(_gameController.Game.IngameState.Data.LocalPlayer));
 
         public RectangleF Window => _window.IsEmpty ? (_window= _gameController.Window.GetWindowRectangleReal()) :_window;
 
@@ -152,10 +130,10 @@ namespace PoeHUD.Models
             }
         }
 
-        public Cache(GameController gameController)
+        public Cache()
         {
             _window = RectangleF.Empty;
-            _gameController = gameController;
+            _gameController = GameController.Instance;
            
         }
         public void UpdateCache()
@@ -166,30 +144,17 @@ namespace PoeHUD.Models
             _uiRoot = null;
             _ingameUi = null;
             _serverData = null;
-            UpdateDataCache();
+            _data = null;
             _fpsRectangle = null;
             _latencyRectangle = null;
             _localPlayer = null;
-            _questTracker = null;
-            _GemLvlUpPanel = null;
+            Player.UpdateCache(_gameController.Game.IngameState.Data.LocalPlayer);
             _window = _gameController.Window.GetWindowRectangleReal();
-            CacheElements.Clear();
-            LittleCacheTime.Clear();
-            LittleCache.Clear();
         }
 
-        public void UpdateDataCache()
-        {
-            _data = null;
-        }
-        
         public void ForceUpdateWindowCache()
         {
             _window = _gameController.Window.GetWindowRectangleReal();
         }
-        
-       public readonly Dictionary<long,RemoteMemoryObject> CacheElements = new Dictionary<long, RemoteMemoryObject>(1024);
-       public readonly Dictionary<long,float> LittleCacheTime = new Dictionary<long, float>(1024);
-       public readonly Dictionary<long,object> LittleCache = new Dictionary<long, object>(1024);
     }
 }
